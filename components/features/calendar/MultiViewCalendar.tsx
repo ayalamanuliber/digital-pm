@@ -116,7 +116,8 @@ export default function MultiViewCalendar() {
   ];
 
   const tasks: Task[] = [
-    // MONDAY - Oct 6
+    // TODO: Replace with real data from API
+    /* // MONDAY - Oct 6
     { id: 't1', projectId: 'p1', projectNumber: '2037', title: 'Install GFCI outlets', assignedTo: '1', assignedBy: 'manual_robert', assignedByName: 'Robert', date: '2025-10-06', startTime: '07:00', endTime: '12:00', duration: 5, status: 'assigned', skillRequired: 'Electrical', estimatedHours: 5, location: '123 Oak St' },
     { id: 't2', projectId: 'p2', projectNumber: '2027', title: 'Deck framing start', assignedTo: '2', assignedBy: 'manual_erick', assignedByName: 'Erick', date: '2025-10-06', startTime: '08:00', endTime: '16:00', duration: 8, status: 'assigned', skillRequired: 'Framing', estimatedHours: 8, location: '456 Maple Ave' },
     { id: 't3', projectId: 'p1', projectNumber: '2037', title: 'Install smoke alarms', assignedTo: '3', assignedBy: 'ai_approved', assignedByName: 'AI', date: '2025-10-06', startTime: '08:00', endTime: '12:00', duration: 4, status: 'assigned', aiConfidence: 92 },
@@ -151,7 +152,7 @@ export default function MultiViewCalendar() {
 
     // SATURDAY - Oct 11
     { id: 't24', projectId: 'p2', projectNumber: '2027', title: 'Weekend deck finishing', assignedTo: '2', assignedBy: 'manual_robert', assignedByName: 'Robert', date: '2025-10-11', startTime: '08:00', endTime: '14:00', duration: 6, status: 'assigned' },
-    { id: 't25', projectId: 'p1', projectNumber: '2037', title: 'Final walkthrough prep', assignedTo: '3', assignedBy: 'manual_erick', assignedByName: 'Erick', date: '2025-10-11', startTime: '09:00', endTime: '12:00', duration: 3, status: 'assigned' }
+    { id: 't25', projectId: 'p1', projectNumber: '2037', title: 'Final walkthrough prep', assignedTo: '3', assignedBy: 'manual_erick', assignedByName: 'Erick', date: '2025-10-11', startTime: '09:00', endTime: '12:00', duration: 3, status: 'assigned' } */
   ];
 
   const aiSuggestions: AISuggestion[] = [
