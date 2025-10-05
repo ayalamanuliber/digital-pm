@@ -85,26 +85,30 @@ export interface Project {
 export interface Task {
   id: string;
   projectId: string;
-  projectNumber: string;
+  projectNumber?: string;
   title: string;
   description: string;
-  assignedTo?: string; // crew member id
+  assignedTo?: string | string[]; // crew member id or array of ids
   assignedBy?: AssignmentSource;
   assignedByName?: string; // "Robert", "Erick", or "AI"
-  date: string;
-  startTime: string;
-  endTime: string;
-  duration: number; // in hours
-  status: TaskStatus;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  duration?: number; // in hours
+  status: TaskStatus | 'scheduled';
   skillRequired?: string;
-  estimatedHours: number;
+  estimatedHours?: number;
   actualHours?: number;
   hasConflict?: boolean;
   conflictReason?: string;
   aiConfidence?: number; // 0-100 if AI assigned
   location?: string;
-  photosRequired?: boolean;
+  photosRequired?: boolean | number;
   notes?: string;
+  priority?: 'low' | 'medium' | 'high';
+  scheduledDate?: string;
+  completedDate?: string;
+  materials?: string[];
 }
 
 export interface AISuggestion {
