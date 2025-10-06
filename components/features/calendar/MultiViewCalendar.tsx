@@ -702,7 +702,8 @@ export default function MultiViewCalendar() {
                               </div>
                               <div className="space-y-1.5">
                                 {dayTasks.map(task => {
-                                  const crew = task.assignedTo ? getCrewById(task.assignedTo) : null;
+                                  const assignedId = Array.isArray(task.assignedTo) ? task.assignedTo[0] : task.assignedTo;
+                                  const crew = assignedId ? getCrewById(assignedId) : null;
                                   return (
                                     <div
                                       key={task.id}
@@ -766,7 +767,8 @@ export default function MultiViewCalendar() {
                         </div>
                         <div className="space-y-2">
                           {dayTasks.map(task => {
-                            const crew = task.assignedTo ? getCrewById(task.assignedTo) : null;
+                            const assignedId = Array.isArray(task.assignedTo) ? task.assignedTo[0] : task.assignedTo;
+                            const crew = assignedId ? getCrewById(assignedId) : null;
                             return (
                               <div
                                 key={task.id}
