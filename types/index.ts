@@ -104,11 +104,13 @@ export interface Task {
   aiConfidence?: number; // 0-100 if AI assigned
   location?: string;
   photosRequired?: boolean | number;
+  photosUploaded?: number;
   notes?: string;
   priority?: 'low' | 'medium' | 'high';
   scheduledDate?: string;
   completedDate?: string;
   materials?: string[];
+  steps?: any[];
 }
 
 export interface AISuggestion {
