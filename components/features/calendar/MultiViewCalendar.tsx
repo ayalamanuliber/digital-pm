@@ -476,7 +476,7 @@ export default function MultiViewCalendar() {
                   </td>
                   {weekDates.map((date, idx) => {
                     const dayTasks = getTasksForDate(date);
-                    const totalHours = dayTasks.reduce((sum, t) => sum + t.duration, 0);
+                    const totalHours = dayTasks.reduce((sum, t) => sum + (t.duration || 0), 0);
                     const uniqueCrew = [...new Set(dayTasks.map(t => t.assignedTo).filter(Boolean))];
                     const hasConflicts = dayTasks.some(t => t.hasConflict);
                     const availableCrew = crewMembers.filter(c => {
@@ -692,7 +692,7 @@ export default function MultiViewCalendar() {
                     {weekDates.map((date, idx) => {
                       const dayTasks = getTasksForDateAndProject(date, project.id);
                       const uniqueCrew = [...new Set(dayTasks.map(t => t.assignedTo).filter(Boolean))];
-                      const totalHours = dayTasks.reduce((sum, t) => sum + t.duration, 0);
+                      const totalHours = dayTasks.reduce((sum, t) => sum + (t.duration || 0), 0);
                       return (
                         <td key={idx} className="px-2 py-4 align-top border-r border-gray-200 last:border-r-0 bg-white">
                           {dayTasks.length > 0 && (
@@ -758,7 +758,7 @@ export default function MultiViewCalendar() {
                     const dayTasks = getTasksForDateAndProject(date, project.id);
                     if (dayTasks.length === 0) return null;
                     const uniqueCrew = [...new Set(dayTasks.map(t => t.assignedTo).filter(Boolean))];
-                    const totalHours = dayTasks.reduce((sum, t) => sum + t.duration, 0);
+                    const totalHours = dayTasks.reduce((sum, t) => sum + (t.duration || 0), 0);
                     return (
                       <div key={idx}>
                         <div className="text-xs font-semibold text-gray-600 uppercase mb-2">
