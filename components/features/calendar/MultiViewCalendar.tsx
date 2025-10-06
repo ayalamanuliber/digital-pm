@@ -260,7 +260,7 @@ export default function MultiViewCalendar() {
   // Calculate daily capacity for a crew member
   const getDailyCapacity = (crewId: string, date: Date) => {
     const dayTasks = getTasksForDateAndCrew(date, crewId);
-    const totalHours = dayTasks.reduce((sum, t) => sum + t.duration, 0);
+    const totalHours = dayTasks.reduce((sum, t) => sum + (t.duration || 0), 0);
     const maxHours = 8; // Standard workday
     const hasConflicts = dayTasks.some(t => t.hasConflict);
     return { totalHours, maxHours, hasConflicts, available: maxHours - totalHours };
