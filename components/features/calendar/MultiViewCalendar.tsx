@@ -908,6 +908,7 @@ export default function MultiViewCalendar() {
                 <div className="flex-1 flex gap-px">
                   {[7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17].map(hour => {
                     const hourTasks = tasks.filter(t => {
+                      if (!t.startTime || !t.endTime) return false;
                       const startHour = parseInt(t.startTime.split(':')[0]);
                       const endHour = parseInt(t.endTime.split(':')[0]);
                       return t.date === selectedDate.toISOString().split('T')[0] &&
