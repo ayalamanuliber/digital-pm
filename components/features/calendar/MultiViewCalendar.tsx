@@ -874,6 +874,7 @@ export default function MultiViewCalendar() {
                         </div>
                         {/* Task bars */}
                         {crewTasks.map(task => {
+                          if (!task.startTime || !task.endTime) return null;
                           const startHour = parseInt(task.startTime.split(':')[0]);
                           const endHour = parseInt(task.endTime.split(':')[0]);
                           const left = ((startHour - 7) / 11) * 100;
