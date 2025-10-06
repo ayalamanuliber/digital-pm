@@ -1,5 +1,5 @@
-import WorkersModule from "@/components/features/workers/WorkersModule";
+import OperationsHub from "@/components/features/dashboard/OperationsHub";
 
 export default function Home() {
-  return <WorkersModule />;
+  return <OperationsHub />;
 }

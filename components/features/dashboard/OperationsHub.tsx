@@ -9,6 +9,7 @@ import ProjectsListView from '@/components/features/projects/ProjectsListView';
 import ProjectDetailView from '@/components/features/projects/ProjectDetailView';
 import TaskAdminModal from '@/components/features/tasks/TaskAdminModal';
 import UploadAssignView from '@/components/features/upload/UploadAssignView';
+import WorkersModule from '@/components/features/workers/WorkersModule';
 import { BreadcrumbPath } from '@/components/features/projects/Breadcrumb';
 
 export default function OperationsHub() {
@@ -369,6 +370,8 @@ export default function OperationsHub() {
               <MultiViewCalendar />
             ) : activeTab === 'labor-preview' ? (
               <PremiumLaborCard />
+            ) : activeTab === 'workers' ? (
+              <WorkersModule />
             ) : activeTab === 'projects' ? (
               <>
                 {breadcrumbPath.project ? (
