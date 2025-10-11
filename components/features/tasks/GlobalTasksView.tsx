@@ -171,7 +171,7 @@ export default function GlobalTasksView() {
   const tasksByStatus = {
     unassigned: filteredTasks.filter(t => t.status === 'unassigned' || t.status === 'rejected' || t.status === 'pending'),
     pending_acceptance: filteredTasks.filter(t => t.status === 'pending_acceptance'),
-    accepted: filteredTasks.filter(t => t.status === 'accepted'),
+    accepted: filteredTasks.filter(t => t.status === 'accepted' || t.status === 'confirmed'),
     in_progress: filteredTasks.filter(t => t.status === 'in_progress'),
     completed: filteredTasks.filter(t => t.status === 'completed')
   };

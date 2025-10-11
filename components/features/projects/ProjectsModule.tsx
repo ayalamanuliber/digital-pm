@@ -584,7 +584,7 @@ function ProjectDetailView({ project, onBack, onEdit, onDelete, pendingTaskNav, 
       t.status === 'pending' || t.status === 'unassigned' || t.status === 'rejected'
     ),
     pending_acceptance: filteredTasks.filter(t => t.status === 'pending_acceptance'),
-    accepted: filteredTasks.filter(t => t.status === 'accepted'),
+    accepted: filteredTasks.filter(t => t.status === 'accepted' || t.status === 'confirmed'),
     in_progress: filteredTasks.filter(t => t.status === 'in_progress'),
     completed: filteredTasks.filter(t => t.status === 'completed')
   };
