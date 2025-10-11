@@ -159,13 +159,29 @@ export default function WorkersModule() {
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Workforce Management</h1>
             <p className="text-gray-600">Team capacity, assignments, and performance tracking</p>
           </div>
-          <button
-            onClick={() => setView('add')}
-            className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm"
-          >
-            <Plus className="w-5 h-5" />
-            Add Worker
-          </button>
+          <div className="flex gap-2">
+            {workers.length > 0 && (
+              <button
+                onClick={() => {
+                  if (confirm('Delete all workers? This cannot be undone.')) {
+                    storage.clearAllWorkers();
+                    loadWorkers();
+                  }
+                }}
+                className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 active:bg-red-800 transition-colors shadow-sm"
+              >
+                <Trash2 className="w-5 h-5" />
+                Clear All
+              </button>
+            )}
+            <button
+              onClick={() => setView('add')}
+              className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm"
+            >
+              <Plus className="w-5 h-5" />
+              Add Worker
+            </button>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -345,7 +361,7 @@ function WorkerCard({ worker, onClick }: { worker: Worker; onClick: () => void }
           {worker.skills.slice(0, 3).map(skill => (
             <span
               key={skill}
-              className={`px-2 py-0.5 rounded text-xs font-medium border ${SKILL_COLORS[skill]}`}
+              className={`px-2 py-0.5 rounded text-xs font-medium border ${SKILL_COLORS[skill] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
             >
               {skill}
             </span>
@@ -467,7 +483,7 @@ function WorkerDetailView({ worker, onBack, onEdit, onDelete }: { worker: Worker
             {worker.skills.map(skill => (
               <span
                 key={skill}
-                className={`px-3 py-1 rounded-lg text-sm font-medium border ${SKILL_COLORS[skill]}`}
+                className={`px-3 py-1 rounded-lg text-sm font-medium border ${SKILL_COLORS[skill] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
               >
                 {skill}
               </span>

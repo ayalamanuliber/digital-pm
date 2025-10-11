@@ -1340,7 +1340,7 @@ function ProjectDetailView({ project, onBack, onEdit, onDelete, pendingTaskNav, 
       )}
 
       {/* Estimate Preview Modal */}
-      {showEstimateModal && currentProject.estimatePreview && (
+      {showEstimateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowEstimateModal(false)}>
           <div className="relative max-w-6xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
             <button
@@ -1350,11 +1350,27 @@ function ProjectDetailView({ project, onBack, onEdit, onDelete, pendingTaskNav, 
               <X className="w-8 h-8" />
             </button>
             <div className="bg-white rounded-xl p-4 shadow-2xl overflow-auto max-h-[90vh]">
-              <img
-                src={currentProject.estimatePreview}
-                alt={`Estimate - Project #${currentProject.number}`}
-                className="w-full h-auto"
-              />
+              {currentProject.estimatePreview ? (
+                <img
+                  src={currentProject.estimatePreview}
+                  alt={`Estimate - Project #${currentProject.number}`}
+                  className="w-full h-auto"
+                  onError={(e) => {
+                    console.error('Failed to load estimate image');
+                    e.currentTarget.style.display = 'none';
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'text-center py-12';
+                    errorDiv.innerHTML = '<p class="text-gray-600">Failed to load estimate preview</p>';
+                    e.currentTarget.parentElement?.appendChild(errorDiv);
+                  }}
+                />
+              ) : (
+                <div className="text-center py-12">
+                  <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-600 text-lg font-medium">No estimate preview available</p>
+                  <p className="text-gray-500 text-sm mt-2">Upload an estimate to see the preview</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

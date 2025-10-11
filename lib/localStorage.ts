@@ -293,6 +293,12 @@ export const storage = {
     return true;
   },
 
+  clearAllWorkers: () => {
+    if (typeof window === 'undefined') return;
+    storage.saveWorkers([]);
+    return true;
+  },
+
   // Projects
   getProjects: (): any[] => {
     if (typeof window === 'undefined') return [];
