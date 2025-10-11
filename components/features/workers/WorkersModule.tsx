@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Search, CheckCircle, Clock, AlertTriangle, Award, Briefcase, CalendarDays, TrendingUp, MapPin, Phone, Mail, ArrowLeft, MessageSquare, X } from 'lucide-react';
+import { Users, Plus, Search, CheckCircle, Clock, AlertTriangle, Award, Briefcase, CalendarDays, TrendingUp, MapPin, Phone, Mail, ArrowLeft, MessageSquare, X, Edit2, Trash2 } from 'lucide-react';
+import { storage } from '@/lib/localStorage';
 
 // ============================================================================
 // TYPES
@@ -45,27 +46,24 @@ const SKILL_COLORS: Record<SkillType, string> = {
 
 export default function WorkersModule() {
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [view, setView] = useState<'list' | 'detail' | 'add'>('list');
+  const [view, setView] = useState<'list' | 'detail' | 'add' | 'edit'>('list');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSkill, setFilterSkill] = useState<SkillType | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'busy' | 'at-capacity' | 'off'>('all');
   const [loading, setLoading] = useState(true);
 
-  // Fetch workers on mount
+  // Load workers from localStorage on mount
   useEffect(() => {
-    fetchWorkers();
+    loadWorkers();
   }, []);
 
-  const fetchWorkers = async () => {
+  const loadWorkers = () => {
     try {
-      const response = await fetch('/api/workers');
-      if (response.ok) {
-        const data = await response.json();
-        setWorkers(data);
-      }
+      const data = storage.getWorkers();
+      setWorkers(data);
     } catch (error) {
-      console.error('Failed to fetch workers:', error);
+      console.error('Failed to load workers:', error);
     } finally {
       setLoading(false);
     }
@@ -90,25 +88,60 @@ export default function WorkersModule() {
     availableHoursThisWeek: workers.reduce((acc, w) => acc + Math.max(0, 40 - w.hoursThisWeek), 0)
   };
 
+  const handleDeleteWorker = (id: string) => {
+    if (confirm('Are you sure you want to delete this worker? This action cannot be undone.')) {
+      try {
+        storage.deleteWorker(id);
+        loadWorkers();
+        setView('list');
+      } catch (error) {
+        console.error('Failed to delete worker:', error);
+      }
+    }
+  };
+
+  const handleUpdateWorker = (id: string, updates: Partial<Worker>) => {
+    try {
+      storage.updateWorker(id, updates);
+      loadWorkers();
+      setView('list');
+    } catch (error) {
+      console.error('Failed to update worker:', error);
+    }
+  };
+
   if (view === 'detail' && selectedWorker) {
-    return <WorkerDetailView worker={selectedWorker} onBack={() => setView('list')} />;
+    return (
+      <WorkerDetailView
+        worker={selectedWorker}
+        onBack={() => setView('list')}
+        onEdit={() => setView('edit')}
+        onDelete={() => handleDeleteWorker(selectedWorker.id)}
+      />
+    );
+  }
+
+  if (view === 'edit' && selectedWorker) {
+    return (
+      <EditWorkerModal
+        worker={selectedWorker}
+        onClose={() => setView('detail')}
+        onSave={(updates) => {
+          handleUpdateWorker(selectedWorker.id, updates);
+        }}
+      />
+    );
   }
 
   if (view === 'add') {
     return (
       <AddWorkerModal
         onClose={() => setView('list')}
-        onSave={async (newWorker) => {
+        onSave={(newWorker) => {
           try {
-            const response = await fetch('/api/workers', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(newWorker)
-            });
-            if (response.ok) {
-              await fetchWorkers();
-              setView('list');
-            }
+            const added = storage.addWorker(newWorker);
+            loadWorkers();
+            setView('list');
           } catch (error) {
             console.error('Failed to add worker:', error);
           }
@@ -348,7 +381,7 @@ function WorkerCard({ worker, onClick }: { worker: Worker; onClick: () => void }
 // WORKER DETAIL VIEW
 // ============================================================================
 
-function WorkerDetailView({ worker, onBack }: { worker: Worker; onBack: () => void }) {
+function WorkerDetailView({ worker, onBack, onEdit, onDelete }: { worker: Worker; onBack: () => void; onEdit: () => void; onDelete: () => void }) {
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <button
@@ -386,9 +419,19 @@ function WorkerDetailView({ worker, onBack }: { worker: Worker; onBack: () => vo
           </div>
 
           <div className="flex gap-2">
-            <button className="flex items-center gap-2 border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 active:bg-gray-100 transition-colors">
-              <MessageSquare className="w-4 h-4" />
-              Message
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm"
+            >
+              <Edit2 className="w-4 h-4" />
+              Edit
+            </button>
+            <button
+              onClick={onDelete}
+              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 active:bg-red-700 transition-colors shadow-sm"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
             </button>
           </div>
         </div>
@@ -501,7 +544,7 @@ function AddWorkerModal({ onClose, onSave }: { onClose: () => void; onSave: (wor
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="John Doe"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
               />
             </div>
 
@@ -513,7 +556,7 @@ function AddWorkerModal({ onClose, onSave }: { onClose: () => void; onSave: (wor
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="(720) 555-0123"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
                 />
               </div>
               <div>
@@ -523,7 +566,7 @@ function AddWorkerModal({ onClose, onSave }: { onClose: () => void; onSave: (wor
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="john@example.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
                 />
               </div>
             </div>
@@ -536,7 +579,7 @@ function AddWorkerModal({ onClose, onSave }: { onClose: () => void; onSave: (wor
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   placeholder="Denver, CO"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
                 />
               </div>
               <div>
@@ -546,7 +589,7 @@ function AddWorkerModal({ onClose, onSave }: { onClose: () => void; onSave: (wor
                   value={formData.hourlyRate}
                   onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
                   placeholder="55"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
                 />
               </div>
             </div>
@@ -583,6 +626,205 @@ function AddWorkerModal({ onClose, onSave }: { onClose: () => void; onSave: (wor
                 className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm"
               >
                 Add Worker
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// EDIT WORKER MODAL
+// ============================================================================
+
+function EditWorkerModal({ worker, onClose, onSave }: { worker: Worker; onClose: () => void; onSave: (updates: Partial<Worker>) => void }) {
+  const [formData, setFormData] = useState({
+    name: worker.name,
+    phone: worker.phone,
+    email: worker.email,
+    location: worker.location,
+    hourlyRate: worker.hourlyRate.toString(),
+    skills: worker.skills,
+    status: worker.status,
+    efficiency: worker.efficiency,
+    completedTasks: worker.completedTasks,
+    hoursThisWeek: worker.hoursThisWeek,
+    hoursNextWeek: worker.hoursNextWeek
+  });
+
+  const toggleSkill = (skill: SkillType) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: prev.skills.includes(skill)
+        ? prev.skills.filter(s => s !== skill)
+        : [...prev.skills, skill]
+    }));
+  };
+
+  const handleSubmit = () => {
+    if (!formData.name || !formData.phone || formData.skills.length === 0) {
+      alert('Please fill in required fields (Name, Phone, and at least one Skill)');
+      return;
+    }
+
+    onSave({
+      ...formData,
+      hourlyRate: parseFloat(formData.hourlyRate) || 0
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Edit Worker</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="John Doe"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Phone *</label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="(720) 555-0123"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="john@example.com"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="Denver, CO"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Hourly Rate ($)</label>
+                <input
+                  type="number"
+                  value={formData.hourlyRate}
+                  onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
+                  placeholder="55"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as Worker['status'] })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
+              >
+                <option value="available">Available</option>
+                <option value="busy">Busy</option>
+                <option value="at-capacity">At Capacity</option>
+                <option value="off">Off Duty</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Skills & Trades *</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {Object.keys(SKILL_COLORS).map(skill => (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => toggleSkill(skill as SkillType)}
+                    className={`px-4 py-2 rounded-lg border-2 font-medium transition-colors ${
+                      formData.skills.includes(skill as SkillType)
+                        ? `${SKILL_COLORS[skill as SkillType]} border-current`
+                        : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    {skill}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Efficiency %</label>
+                <input
+                  type="number"
+                  value={formData.efficiency}
+                  onChange={(e) => setFormData({ ...formData, efficiency: parseInt(e.target.value) || 0 })}
+                  placeholder="100"
+                  min="0"
+                  max="100"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Hours This Week</label>
+                <input
+                  type="number"
+                  value={formData.hoursThisWeek}
+                  onChange={(e) => setFormData({ ...formData, hoursThisWeek: parseFloat(e.target.value) || 0 })}
+                  placeholder="40"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Completed Tasks</label>
+                <input
+                  type="number"
+                  value={formData.completedTasks}
+                  onChange={(e) => setFormData({ ...formData, completedTasks: parseInt(e.target.value) || 0 })}
+                  placeholder="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-6 border-t border-gray-200">
+              <button
+                onClick={onClose}
+                className="flex-1 px-6 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm"
+              >
+                Save Changes
               </button>
             </div>
           </div>

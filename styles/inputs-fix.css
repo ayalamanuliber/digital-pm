@@ -1,0 +1,33 @@
+/* Global input/select/textarea text visibility fix */
+input,
+select,
+textarea {
+  color: #111827 !important; /* Dark gray/black text */
+}
+
+input::placeholder,
+select::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important; /* Medium gray placeholder */
+}
+
+/* Date inputs */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  color: #111827 !important;
+}
+
+/* Select dropdowns */
+select option {
+  color: #111827 !important;
+  background-color: white !important;
+}
+
+/* Ensure disabled inputs are still visible */
+input:disabled,
+select:disabled,
+textarea:disabled {
+  color: #6b7280 !important;
+  background-color: #f3f4f6 !important;
+}

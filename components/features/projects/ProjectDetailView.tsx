@@ -311,91 +311,143 @@ export default function ProjectDetailView({ project, onNavigate, onTaskClick }: 
         </div>
       </div>
 
-      {/* View Mode Tabs */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
-          <button
-            onClick={() => setViewMode('list')}
-            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-              viewMode === 'list'
-                ? 'bg-blue-500 text-white shadow-sm'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            List View
-          </button>
-          <button
-            onClick={() => setViewMode('timeline')}
-            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-              viewMode === 'timeline'
-                ? 'bg-blue-500 text-white shadow-sm'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Timeline
-          </button>
-          <button
-            onClick={() => setViewMode('materials')}
-            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-              viewMode === 'materials'
-                ? 'bg-blue-500 text-white shadow-sm'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Materials
-          </button>
-          <button
-            onClick={() => setViewMode('budget')}
-            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-              viewMode === 'budget'
-                ? 'bg-blue-500 text-white shadow-sm'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Budget
-          </button>
-          <button
-            onClick={() => setViewMode('documents')}
-            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-              viewMode === 'documents'
-                ? 'bg-blue-500 text-white shadow-sm'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Documents
-          </button>
-        </div>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all">
-          <Plus size={20} />
-          Add Task
-        </button>
-      </div>
-
-      {/* Search & Filters */}
+      {/* Toolbar - Stats + Search + Filters (Only in List View) */}
       {viewMode === 'list' && (
-        <>
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search tasks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+        <div className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+          {/* Stats Badges */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg border border-slate-200">
+              <FileText className="w-4 h-4 text-slate-600" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Total</span>
+                <span className="text-sm font-bold text-gray-900">{project.totalTasks}</span>
+              </div>
             </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 rounded-lg border border-green-200">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Done</span>
+                <span className="text-sm font-bold text-green-900">{project.completedTasks}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 rounded-lg border border-blue-200">
+              <Play className="w-4 h-4 text-blue-600" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Active</span>
+                <span className="text-sm font-bold text-blue-900">{groupedTasks.in_progress.length}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 rounded-lg border border-amber-200">
+              <Calendar className="w-4 h-4 text-amber-600" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Scheduled</span>
+                <span className="text-sm font-bold text-amber-900">{groupedTasks.scheduled.length}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-6 w-px bg-gray-200"></div>
+
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 border-0 bg-transparent focus:outline-none text-sm"
+            />
+          </div>
+
+          <div className="h-6 w-px bg-gray-200"></div>
+
+          {/* Filter Dropdown */}
+          <div className="relative">
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="px-4 py-3 border border-gray-300 rounded-xl font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-3 pr-8 py-1.5 border-0 bg-transparent focus:outline-none text-sm font-medium text-gray-700 cursor-pointer appearance-none"
             >
-              <option value="all">All Tasks</option>
+              <option value="all">All Status</option>
               <option value="completed">Completed</option>
               <option value="in_progress">In Progress</option>
               <option value="scheduled">Scheduled</option>
             </select>
+            <ChevronDown className="absolute right-1 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
           </div>
+
+          <div className="h-6 w-px bg-gray-200"></div>
+
+          {/* Add Task Button */}
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
+            <Plus className="w-4 h-4" />
+            New Task
+          </button>
+        </div>
+      )}
+
+      {/* View Mode Tabs (Only shown when NOT in list view) */}
+      {viewMode !== 'list' && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
+            <button
+              onClick={() => setViewMode('list')}
+              className="px-4 py-2 rounded-lg font-bold text-sm transition-all text-gray-600 hover:bg-gray-100"
+            >
+              List View
+            </button>
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                viewMode === 'timeline'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Timeline
+            </button>
+            <button
+              onClick={() => setViewMode('materials')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                viewMode === 'materials'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Materials
+            </button>
+            <button
+              onClick={() => setViewMode('budget')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                viewMode === 'budget'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Budget
+            </button>
+            <button
+              onClick={() => setViewMode('documents')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                viewMode === 'documents'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Documents
+            </button>
+          </div>
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all">
+            <Plus size={20} />
+            Add Task
+          </button>
+        </div>
+      )}
+
+      {/* Tasks List - Only shown in list view */}
+      {viewMode === 'list' && (
+        <>
 
           {/* Tasks List */}
           <div className="space-y-6">
@@ -425,13 +477,27 @@ export default function ProjectDetailView({ project, onNavigate, onTaskClick }: 
                             <AlertTriangle size={14} className={getPriorityColor(task.priority)} />
                           </div>
                           <p className="text-sm text-gray-600 font-medium mb-3">{task.description}</p>
-                          <div className="flex items-center gap-6 text-xs">
+                          <div className="flex items-center gap-6 text-xs flex-wrap">
                             <div className="flex items-center gap-1.5">
                               <Users size={14} className="text-gray-400" />
                               <span className="font-bold text-gray-700">
                                 {task.assignedTo.map(id => crewMembers.find(m => m.id === id)?.name.split(' ')[0]).join(', ')}
                               </span>
                             </div>
+                            {/* Status Badge */}
+                            {task.status === 'accepted' || task.status === 'confirmed' ? (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700 border border-green-300">
+                                ✓ Confirmed
+                              </span>
+                            ) : task.status === 'rejected' ? (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-300">
+                                ✗ Rejected
+                              </span>
+                            ) : task.status === 'pending_acceptance' ? (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-300">
+                                ⏳ Waiting
+                              </span>
+                            ) : null}
                             <div className="flex items-center gap-1.5">
                               <Clock size={14} className="text-gray-400" />
                               <span className="font-bold text-gray-700">{task.actualHours || task.estimatedHours}h</span>
@@ -554,13 +620,27 @@ export default function ProjectDetailView({ project, onNavigate, onTaskClick }: 
                             <AlertTriangle size={14} className={getPriorityColor(task.priority)} />
                           </div>
                           <p className="text-sm text-gray-600 font-medium mb-3">{task.description}</p>
-                          <div className="flex items-center gap-6 text-xs">
+                          <div className="flex items-center gap-6 text-xs flex-wrap">
                             <div className="flex items-center gap-1.5">
                               <Users size={14} className="text-gray-400" />
                               <span className="font-bold text-gray-700">
                                 {task.assignedTo.map(id => crewMembers.find(m => m.id === id)?.name.split(' ')[0]).join(', ')}
                               </span>
                             </div>
+                            {/* Status Badge */}
+                            {task.status === 'accepted' || task.status === 'confirmed' ? (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700 border border-green-300">
+                                ✓ Confirmed
+                              </span>
+                            ) : task.status === 'rejected' ? (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-300">
+                                ✗ Rejected
+                              </span>
+                            ) : task.status === 'pending_acceptance' ? (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-300">
+                                ⏳ Waiting
+                              </span>
+                            ) : null}
                             <div className="flex items-center gap-1.5">
                               <Clock size={14} className="text-gray-400" />
                               <span className="font-bold text-gray-700">{task.estimatedHours}h</span>
@@ -593,7 +673,7 @@ export default function ProjectDetailView({ project, onNavigate, onTaskClick }: 
               <p className="text-gray-600">Try adjusting your search or filters</p>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* Other view modes placeholder */}
