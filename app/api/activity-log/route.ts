@@ -4,8 +4,9 @@ import { activityLog } from '@/db/schema';
 import { desc } from 'drizzle-orm';
 
 export async function POST(req: NextRequest) {
+  let body;
   try {
-    const body = await req.json();
+    body = await req.json();
     const newLog = await db.insert(activityLog).values(body).returning();
     return NextResponse.json(newLog[0], { status: 201 });
   } catch (error) {
@@ -15,6 +16,8 @@ export async function POST(req: NextRequest) {
     // In production, this could be sent to a backup queue/service
     const fallbackLog = {
       id: `log-${Date.now()}`,
+      type: body?.type || 'unknown',
+      description: body?.description || 'Activity logged',
       savedAt: new Date().toISOString(),
       savedToDb: false
     };
