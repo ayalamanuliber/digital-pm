@@ -330,7 +330,7 @@ function WorkerCard({ worker, onClick }: { worker: Worker; onClick: () => void }
     off: { color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock, label: 'Off Duty' }
   };
 
-  const config = statusConfig[worker.status];
+  const config = statusConfig[worker.status] || statusConfig.available;
   const StatusIcon = config.icon;
 
   return (
