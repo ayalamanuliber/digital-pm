@@ -393,9 +393,12 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
   const config = statusConfig[project.status];
   const StatusIcon = config.icon;
 
-  const completedTasks = project.tasks.filter(t => t.status === 'completed').length;
+  // Count tasks in Phase 2 (confirmed/accepted/in_progress) and Phase 3 (completed) as "in progress"
+  const activeTasks = project.tasks.filter(t =>
+    t.status === 'confirmed' || t.status === 'accepted' || t.status === 'in_progress' || t.status === 'completed'
+  ).length;
   const totalTasks = project.tasks.length;
-  const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+  const progress = totalTasks > 0 ? (activeTasks / totalTasks) * 100 : 0;
 
   const colorClasses = {
     blue: 'border-l-blue-500 bg-blue-50',
@@ -459,7 +462,7 @@ function ProjectCard({ project, onClick }: { project: Project; onClick: () => vo
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
           <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Progress</p>
-          <p className="text-xs font-bold text-gray-900">{completedTasks}/{totalTasks}</p>
+          <p className="text-xs font-bold text-gray-900">{activeTasks}/{totalTasks}</p>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-1.5">
           <div
