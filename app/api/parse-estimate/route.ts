@@ -14,8 +14,20 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     const base64 = buffer.toString('base64');
 
-    // Determine mime type
-    const mimeType = file.type || 'image/jpeg';
+    // Determine mime type - support both images and PDFs
+    let mimeType = file.type;
+    if (!mimeType) {
+      // Infer from filename
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        mimeType = 'application/pdf';
+      } else if (file.name.toLowerCase().endsWith('.png')) {
+        mimeType = 'image/png';
+      } else if (file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg')) {
+        mimeType = 'image/jpeg';
+      } else {
+        mimeType = 'image/jpeg'; // default
+      }
+    }
 
     // Call Gemini API
     const prompt = `You are a construction estimating expert. Parse this estimate and extract ALL information into the EXACT JSON structure below.
@@ -88,7 +100,7 @@ MANDATORY REQUIREMENTS - ZERO TASKS CAN BE MISSING THESE:
 ANALYZE THE ESTIMATE IMAGE CAREFULLY AND EXTRACT ALL DATA.`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {

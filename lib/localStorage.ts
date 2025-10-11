@@ -146,8 +146,8 @@ export const getTaskPhase = (status: TaskStatus): 1 | 2 | 3 => {
   if (status === 'unassigned' || status === 'rejected' || status === 'pending_acceptance') {
     return 1;
   }
-  // Phase 2: Execution (accepted → in_progress → completed)
-  if (status === 'accepted' || status === 'in_progress') {
+  // Phase 2: Execution (confirmed → accepted → in_progress)
+  if (status === 'confirmed' || status === 'accepted' || status === 'in_progress') {
     return 2;
   }
   // Phase 3: Analytics (completed tasks for data collection)
