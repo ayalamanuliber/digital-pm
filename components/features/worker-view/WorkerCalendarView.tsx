@@ -1502,23 +1502,23 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
       return (
         <div className="h-full bg-white relative">
           {/* Thread Header - Fixed at top of conversation */}
-          <div className="fixed top-[52px] left-0 right-0 bg-white border-b border-gray-200 p-3 flex items-center gap-3 shadow-sm z-30">
-            <div className="max-w-md mx-auto w-full flex items-center gap-3">
+          <div className="fixed top-[44px] left-0 right-0 bg-white border-b border-gray-200 p-2.5 flex items-center gap-2 shadow-sm z-30">
+            <div className="max-w-md mx-auto w-full flex items-center gap-2">
               <button
                 onClick={handleBackToThreads}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
               >
                 <ChevronDown className="w-5 h-5 text-gray-600 transform rotate-90" />
               </button>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-gray-900 text-sm">#{selectedThread.projectNumber}</h3>
-                <p className="text-xs text-gray-600 truncate">{selectedThread.taskDescription}</p>
+                <h3 className="font-bold text-gray-900 text-sm leading-tight">#{selectedThread.projectNumber}</h3>
+                <p className="text-[10px] text-gray-600 truncate">{selectedThread.taskDescription}</p>
               </div>
             </div>
           </div>
 
           {/* Messages - Scrollable area with proper padding */}
-          <div className="h-full overflow-y-auto overscroll-none p-4 space-y-3 bg-gray-50" style={{ paddingTop: '68px', paddingBottom: '100px', WebkitOverflowScrolling: 'touch' }}>
+          <div className="h-full overflow-y-auto overscroll-none p-4 space-y-3 bg-gray-50" style={{ paddingTop: '60px', paddingBottom: '120px', WebkitOverflowScrolling: 'touch' }}>
             {selectedThread.messages && selectedThread.messages.length > 0 ? (
               <>
                 {selectedThread.messages.map((message: any) => {
@@ -2984,24 +2984,24 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
   return (
     <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100" style={{ position: 'fixed', width: '100%', touchAction: 'pan-y' }}>
       <div className="w-full max-w-md mx-auto bg-white h-full relative" style={{ overscrollBehavior: 'none' }}>
-        {/* Header - Fixed to top */}
-        <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 border-b border-blue-700 z-50">
+        {/* Header - Fixed to top - Compact */}
+        <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-700 px-3 py-2 border-b border-blue-700 z-50">
           <div className="max-w-md mx-auto flex items-center justify-between">
             <div>
-              <h1 className="text-white text-lg font-bold">
+              <h1 className="text-white text-base font-bold leading-tight">
                 Hi, {selectedWorker?.name || 'Worker'}
               </h1>
-              <p className="text-blue-100 text-xs font-semibold">
+              <p className="text-blue-100 text-[10px] font-semibold">
                 {projectGroups.length} projects
               </p>
             </div>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 bg-blue-500/30 rounded-full hover:bg-blue-500/50 transition-colors relative"
+              className="p-1.5 bg-blue-500/30 rounded-full hover:bg-blue-500/50 transition-colors relative"
             >
               <Bell className="w-4 h-4 text-white" />
               {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold px-1 py-0.5 rounded-full min-w-[16px] text-center">
                   {notificationCount}
                 </span>
               )}
@@ -3011,7 +3011,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
 
         {/* Notifications Panel - Below fixed header */}
         {showNotifications && (
-          <div className="fixed top-[52px] left-0 right-0 bg-white border-b border-gray-200 shadow-lg max-h-[60vh] overflow-y-auto z-40">
+          <div className="fixed top-[44px] left-0 right-0 bg-white border-b border-gray-200 shadow-lg max-h-[60vh] overflow-y-auto z-40">
             <div className="max-w-md mx-auto">
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="font-bold text-gray-900">Notifications</h3>
@@ -3134,7 +3134,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
         )}
 
         {!workerId && (
-          <div className="fixed top-[52px] left-0 right-0 p-4 bg-white border-b border-gray-200 z-30">
+          <div className="fixed top-[44px] left-0 right-0 p-4 bg-white border-b border-gray-200 z-30">
             <div className="max-w-md mx-auto">
               <select
                 value={selectedWorkerId}
@@ -3151,7 +3151,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
         )}
 
         {/* Content Area - Scrollable with padding for fixed header and nav */}
-        <div className="h-full overflow-y-auto pt-[52px] pb-14" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}>
+        <div className="h-full overflow-y-auto pt-[44px] pb-14" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}>
           {selectedWorkerId ? (
             <>
               {activeTab === 'schedule' && renderScheduleTab()}
