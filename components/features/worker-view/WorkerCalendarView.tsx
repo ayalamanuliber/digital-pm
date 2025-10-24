@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { storage, Worker } from '@/lib/localStorage';
 import {
   Bell, Calendar, Clock, MapPin, ChevronUp, ChevronDown,
@@ -8,6 +8,23 @@ import {
   ChevronRight, Package, Image, Trash2, Wrench, Sparkles, Eye, PartyPopper, Camera,
   UserCheck, Send
 } from 'lucide-react';
+
+// FIX: useInterval hook - prevents stale closure bug (Dan Abramov pattern from React docs)
+function useInterval(callback: () => void, delay: number | null) {
+  const savedCallback = useRef<() => void>();
+
+  // Remember the latest callback
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  // Set up the interval
+  useEffect(() => {
+    if (delay === null) return;
+    const id = setInterval(() => savedCallback.current?.(), delay);
+    return () => clearInterval(id);
+  }, [delay]);
+}
 
 // Project-grouped tasks type
 interface ProjectGroup {
@@ -196,18 +213,13 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     }
   }, [selectedThread?.messages]);
 
-  // AGGRESSIVE POLLING for cloud mode - poll every 2 seconds for real-time feel
-  useEffect(() => {
+  // FIX: Use useInterval instead of useEffect+setInterval to prevent stale closures
+  useInterval(async () => {
     if (!isCloudMode || !selectedWorkerId) return;
-
-    const pollInterval = setInterval(async () => {
-      console.log('🔄 Worker: Polling for updates...');
-      await loadData();
-      await loadMessageThreads();
-    }, 2000); // Poll every 2 seconds (like WhatsApp/Slack)
-
-    return () => clearInterval(pollInterval);
-  }, [isCloudMode, selectedWorkerId]);
+    console.log('🔄 Worker: Polling for updates...');
+    await loadData();
+    await loadMessageThreads();
+  }, isCloudMode && selectedWorkerId ? 2000 : null);
 
   // Listen for projectsUpdated event in admin mode (when messages sync from cloud)
   useEffect(() => {
@@ -572,26 +584,26 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
 
     setMessageThreads(workerThreads);
 
-    // CRITICAL: Update selected thread if it exists so chat view updates in real-time
-    if (selectedThread) {
+    // FIX: Use functional state update to avoid stale closure
+    setSelectedThread(prevThread => {
+      if (!prevThread) return prevThread;
+
       const updated = workerThreads.find(t =>
-        t.projectId === selectedThread.projectId && t.taskId === selectedThread.taskId
+        t.projectId === prevThread.projectId && t.taskId === prevThread.taskId
       );
-      if (updated) {
-        const oldCount = selectedThread.messages?.length || 0;
-        const newCount = updated.messages?.length || 0;
 
-        if (newCount !== oldCount) {
-          console.log('🔄 Worker: NEW MESSAGES!', oldCount, '→', newCount);
-        }
+      if (!updated) return prevThread;
 
-        // ALWAYS update, even if count same (message content might have changed)
-        setSelectedThread({
-          ...updated,
-          _updateKey: Date.now() // Force re-render
-        });
+      const oldCount = prevThread.messages?.length || 0;
+      const newCount = updated.messages?.length || 0;
+
+      if (newCount !== oldCount) {
+        console.log('🔄 Worker: NEW MESSAGES!', oldCount, '→', newCount);
       }
-    }
+
+      // Return new object to force re-render
+      return { ...updated };
+    });
   };
 
   // Activity logging

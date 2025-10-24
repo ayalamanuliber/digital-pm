@@ -1,8 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, MessageSquare, Send, User, Calendar } from 'lucide-react';
 import { storage } from '@/lib/localStorage';
+
+// FIX: useInterval hook - prevents stale closure bug (Dan Abramov pattern)
+function useInterval(callback: () => void, delay: number | null) {
+  const savedCallback = useRef<() => void>();
+
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    if (delay === null) return;
+    const id = setInterval(() => savedCallback.current?.(), delay);
+    return () => clearInterval(id);
+  }, [delay]);
+}
 
 interface MessageThread {
   projectId: string;
@@ -34,6 +49,12 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
       window.removeEventListener('projectsUpdated', handleUpdate);
     };
   }, []);
+
+  // FIX: Use useInterval for polling instead of relying on sync events only
+  useInterval(() => {
+    console.log('📬 Admin: Polling for messages...');
+    loadThreads();
+  }, 2000);
 
   const loadThreads = () => {
     console.log('📬 MessagesCenter: Loading threads from localStorage...');
@@ -69,26 +90,26 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
     console.log('📬 MessagesCenter: Setting', messageThreads.length, 'threads in state');
     setThreads(messageThreads);
 
-    // CRITICAL: Update selected thread if it exists so chat view updates
-    if (selectedThread) {
+    // FIX: Use functional state update to avoid stale closure
+    setSelectedThread(prevThread => {
+      if (!prevThread) return prevThread;
+
       const updated = messageThreads.find(t =>
-        t.projectId === selectedThread.projectId && t.taskId === selectedThread.taskId
+        t.projectId === prevThread.projectId && t.taskId === prevThread.taskId
       );
-      if (updated) {
-        const oldCount = selectedThread.messages?.length || 0;
-        const newCount = updated.messages?.length || 0;
 
-        if (newCount !== oldCount) {
-          console.log('📬 MessagesCenter: NEW MESSAGES!', oldCount, '→', newCount);
-        }
+      if (!updated) return prevThread;
 
-        // ALWAYS update with timestamp to force re-render
-        setSelectedThread({
-          ...updated,
-          _updateKey: Date.now()
-        });
+      const oldCount = prevThread.messages?.length || 0;
+      const newCount = updated.messages?.length || 0;
+
+      if (newCount !== oldCount) {
+        console.log('📬 Admin: NEW MESSAGES!', oldCount, '→', newCount);
       }
-    }
+
+      // Return new object to force re-render
+      return { ...updated };
+    });
   };
 
   const handleSelectThread = (thread: MessageThread) => {
