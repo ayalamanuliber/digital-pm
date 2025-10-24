@@ -544,6 +544,27 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           );
 
           setMessageThreads(workerThreads);
+
+          // FIX: Update selected thread with new messages (real-time updates)
+          setSelectedThread(prevThread => {
+            if (!prevThread) return prevThread;
+
+            const updated = workerThreads.find((t: any) =>
+              t.projectId === prevThread.projectId && t.taskId === prevThread.taskId
+            );
+
+            if (!updated) return prevThread;
+
+            const oldCount = prevThread.messages?.length || 0;
+            const newCount = updated.messages?.length || 0;
+
+            if (newCount !== oldCount) {
+              console.log('🔄 Worker: NEW MESSAGES!', oldCount, '→', newCount);
+            }
+
+            // Return new object to force re-render with updated messages
+            return { ...updated };
+          });
         }
       } catch (error) {
         console.error('Failed to load messages:', error);
