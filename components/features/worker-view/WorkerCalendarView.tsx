@@ -233,8 +233,8 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
                 projectClient: task.projectClient,
                 projectAddress: task.projectAddress,
                 projectColor: task.projectColor,
-                scheduledDate: task.scheduledDate,
-                scheduledTime: task.scheduledTime,
+                scheduledDate: task.scheduledDate || task.assignedDate,
+                scheduledTime: task.scheduledTime || task.time,
                 tasks: [],
                 totalHours: 0,
                 status: 'assigned'
@@ -242,7 +242,12 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
             }
 
             const group = projectMap.get(pid)!;
-            group.tasks.push(task);
+            // Ensure task has all required fields including scheduledDate
+            group.tasks.push({
+              ...task,
+              scheduledDate: task.scheduledDate || task.assignedDate,
+              scheduledTime: task.scheduledTime || task.time
+            });
             group.totalHours += task.estimatedHours || 0;
 
             // Update group status based on task statuses
