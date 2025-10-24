@@ -326,9 +326,16 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     // Cloud mode: fetch from API
     if (isCloudMode && selectedWorkerId) {
       try {
-        // Fetch tasks for this worker from cloud
-        const response = await fetch(`/api/worker/tasks?workerId=${selectedWorkerId}`);
-        const data = await response.json();
+        // OPTIMIZATION: Fetch all data in parallel for faster load time
+        const [tasksResponse, notifsResponse] = await Promise.all([
+          fetch(`/api/worker/tasks?workerId=${selectedWorkerId}`),
+          fetch(`/api/worker/notifications?workerId=${selectedWorkerId}`)
+        ]);
+
+        const [data, notifsData] = await Promise.all([
+          tasksResponse.json(),
+          notifsResponse.json()
+        ]);
 
         if (data.success) {
           // Create a worker object with provided name
@@ -401,16 +408,14 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
             }))
           });
 
-          // Load notifications
-          const notifsResponse = await fetch(`/api/worker/notifications?workerId=${selectedWorkerId}`);
-          const notifsData = await notifsResponse.json();
+          // Set notifications data (already fetched in parallel)
           if (notifsData.success) {
             setNotifications(notifsData.notifications);
             setNotificationCount(notifsData.notifications.length);
           }
 
-          // Load messages for unread count
-          await loadMessageThreads();
+          // Load messages for unread count (can be parallel with setState above)
+          loadMessageThreads(); // Don't await - let it load in background
         }
       } catch (error) {
         console.error('Failed to load cloud data:', error);
@@ -528,12 +533,20 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
         const data = await response.json();
 
         if (data.success) {
+          // Get projects to fetch colors
+          const projects = isCloudMode ? projectGroups.map(g => g.project) : storage.getProjects();
+
           const workerThreads = data.messages.map((item: any) => {
             const unreadCount = item.messages.filter((m: any) => !m.read && m.sender !== worker.name).length;
             const lastMessage = item.messages[item.messages.length - 1];
 
+            // Find project to get color
+            const project = projects.find((p: any) => p.id === item.projectId);
+            const projectColor = project?.color || 'blue';
+
             return {
               ...item,
+              projectColor,
               lastMessage,
               unreadCount
             };
@@ -591,8 +604,13 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
         const unreadCount = item.messages.filter(m => !m.read && m.sender !== worker.name).length;
         const lastMessage = item.messages[item.messages.length - 1];
 
+        // Find project to get color
+        const project = projects.find(p => p.id === item.projectId);
+        const projectColor = project?.color || 'blue';
+
         return {
           ...item,
+          projectColor,
           lastMessage,
           unreadCount
         };
@@ -1624,36 +1642,52 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto divide-y divide-gray-200 bg-white" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}>
-            {messageThreads.map(thread => (
-              <div
-                key={`${thread.projectId}-${thread.taskId}`}
-                onClick={() => handleSelectThread(thread)}
-                className="bg-white p-4 active:bg-gray-50 transition-colors cursor-pointer"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-bold text-gray-900 text-base">
-                    #{thread.projectNumber}
-                  </h3>
-                  {thread.unreadCount > 0 && (
-                    <span className="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-full min-w-[24px] text-center">
-                      {thread.unreadCount}
-                    </span>
-                  )}
+            {messageThreads.map(thread => {
+              const threadColor = projectColorClasses[thread.projectColor as keyof typeof projectColorClasses] || projectColorClasses.blue;
+
+              return (
+                <div
+                  key={`${thread.projectId}-${thread.taskId}`}
+                  onClick={() => handleSelectThread(thread)}
+                  className="bg-white p-4 active:bg-gray-50 transition-colors cursor-pointer border-l-4"
+                  style={{
+                    borderLeftColor: threadColor.text.replace('text-', '#').replace('blue-700', '#1d4ed8').replace('green-700', '#15803d').replace('purple-700', '#7e22ce').replace('orange-700', '#c2410c').replace('red-700', '#b91c1c').replace('yellow-700', '#a16207').replace('cyan-700', '#0e7490').replace('gray-700', '#374151')
+                  }}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="px-2.5 py-0.5 rounded-full text-xs font-bold border-2"
+                        style={{
+                          borderColor: threadColor.text.replace('text-', '#').replace('blue-700', '#1d4ed8').replace('green-700', '#15803d').replace('purple-700', '#7e22ce').replace('orange-700', '#c2410c').replace('red-700', '#b91c1c').replace('yellow-700', '#a16207').replace('cyan-700', '#0e7490').replace('gray-700', '#374151'),
+                          color: threadColor.text.replace('text-', '#').replace('blue-700', '#1d4ed8').replace('green-700', '#15803d').replace('purple-700', '#7e22ce').replace('orange-700', '#c2410c').replace('red-700', '#b91c1c').replace('yellow-700', '#a16207').replace('cyan-700', '#0e7490').replace('gray-700', '#374151'),
+                          backgroundColor: `${threadColor.bg.replace('bg-', '#').replace('blue-100', '#dbeafe').replace('green-100', '#dcfce7').replace('purple-100', '#f3e8ff').replace('orange-100', '#ffedd5').replace('red-100', '#fee2e2').replace('yellow-100', '#fef9c3').replace('cyan-100', '#cffafe').replace('gray-100', '#f3f4f6')}`
+                        }}
+                      >
+                        #{thread.projectNumber}
+                      </div>
+                    </div>
+                    {thread.unreadCount > 0 && (
+                      <span className="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-full min-w-[24px] text-center">
+                        {thread.unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 line-clamp-1 mb-2 font-medium">{thread.taskDescription}</p>
+                  <p className="text-sm text-gray-500 line-clamp-2">
+                    <span className="font-semibold">{thread.lastMessage.sender}:</span> {thread.lastMessage.text}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {new Date(thread.lastMessage.timestamp).toLocaleString([], {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
                 </div>
-                <p className="text-sm text-gray-600 line-clamp-1 mb-2 font-medium">{thread.taskDescription}</p>
-                <p className="text-sm text-gray-500 line-clamp-2">
-                  <span className="font-semibold">{thread.lastMessage.sender}:</span> {thread.lastMessage.text}
-                </p>
-                <p className="text-xs text-gray-400 mt-2">
-                  {new Date(thread.lastMessage.timestamp).toLocaleString([], {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -3076,7 +3110,11 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
                     const typeIcons = {
                       task_assigned: <UserCheck className="w-5 h-5" />,
                       task_rejected: <X className="w-5 h-5" />,
+                      task_accepted: <CheckCircle className="w-5 h-5" />,
+                      task_completed: <CheckSquare className="w-5 h-5" />,
+                      message_received: <MessageSquare className="w-5 h-5" />,
                       reminder: <Bell className="w-5 h-5" />,
+                      schedule_update: <Calendar className="w-5 h-5" />,
                       default: <AlertCircle className="w-5 h-5" />
                     };
 
@@ -3084,6 +3122,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
                       <div
                         key={notification.id}
                         onClick={async () => {
+                          // Mark notification as read
                           if (isCloudMode) {
                             try {
                               await fetch('/api/worker/notifications', {
@@ -3097,6 +3136,48 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
                           } else {
                             storage.markNotificationAsRead(notification.id);
                           }
+
+                          // Navigate to the relevant project/task
+                          if (notification.projectId && notification.taskId) {
+                            // Find the project and task
+                            const projects = isCloudMode ? projectGroups.map(g => g.project) : storage.getProjects();
+                            const project = projects.find((p: any) => p.id === notification.projectId);
+
+                            if (project) {
+                              const task = project.tasks?.find((t: any) => t.id === notification.taskId);
+
+                              if (task) {
+                                // Determine which tab to navigate to based on task status
+                                if (task.scheduledDate) {
+                                  setActiveTab('schedule');
+                                } else {
+                                  setActiveTab('jobs');
+                                }
+
+                                // Create a project group for the task detail
+                                const projectGroup = {
+                                  project,
+                                  projectId: project.id,
+                                  projectNumber: project.number,
+                                  projectClient: project.clientName,
+                                  projectAddress: project.clientAddress,
+                                  projectColor: project.color || 'blue',
+                                  scheduledDate: task.scheduledDate || task.assignedDate,
+                                  scheduledTime: task.scheduledTime || task.time,
+                                  tasks: [task]
+                                };
+
+                                // Open the task detail
+                                setSelectedProject(projectGroup);
+                                setSelectedTask(task);
+                                setPhase('task-detail');
+                              }
+                            }
+                          }
+
+                          // Close notifications panel
+                          setShowNotifications(false);
+
                           await loadData();
                         }}
                         className={`p-4 ${notification.read ? 'bg-white' : priorityColors[notification.priority]} border-l-4 ${notification.read ? 'border-gray-200' : priorityColors[notification.priority]} cursor-pointer hover:bg-gray-50 transition-colors`}
