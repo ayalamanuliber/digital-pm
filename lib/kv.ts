@@ -19,7 +19,7 @@ export type SyncData = {
 // SYNC FUNCTIONS - Admin pushes data to cloud
 // ============================================================================
 
-export async function syncToCloud(data: { projects?: any[]; workers?: any[] }) {
+export async function syncToCloud(data: { projects?: any[]; workers?: any[]; notifications?: any[]; messages?: any[] }) {
   try {
     const timestamp = new Date().toISOString();
 
@@ -29,6 +29,14 @@ export async function syncToCloud(data: { projects?: any[]; workers?: any[] }) {
 
     if (data.workers) {
       await kv.set(KEYS.WORKERS, data.workers);
+    }
+
+    if (data.notifications) {
+      await kv.set('pm:notifications', data.notifications);
+    }
+
+    if (data.messages) {
+      await kv.set('pm:messages', data.messages);
     }
 
     await kv.set(KEYS.SYNC_TIMESTAMP, timestamp);

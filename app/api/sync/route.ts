@@ -6,9 +6,9 @@ import { syncToCloud, fetchFromCloud } from '@/lib/kv';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { projects, workers } = body;
+    const { projects, workers, notifications, messages } = body;
 
-    const result = await syncToCloud({ projects, workers });
+    const result = await syncToCloud({ projects, workers, notifications, messages });
 
     if (result.success) {
       return NextResponse.json({

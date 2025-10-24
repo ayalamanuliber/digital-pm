@@ -41,6 +41,8 @@ ${data.data.workers.length > 0 ? `\nWORKERS IN CLOUD:\n${data.data.workers.map((
       // Get data from localStorage
       const projectsStr = localStorage.getItem('projects');
       const workersStr = localStorage.getItem('workers');
+      const notificationsStr = localStorage.getItem('digital-pm-notifications');
+      const messagesStr = localStorage.getItem('digital-pm-messages');
 
       if (!projectsStr && !workersStr) {
         setStatus('❌ No data found in localStorage.\n\nGo to your admin dashboard first, add workers with the Workers module, then come back here to sync!');
@@ -50,8 +52,25 @@ ${data.data.workers.length > 0 ? `\nWORKERS IN CLOUD:\n${data.data.workers.map((
 
       const projects = projectsStr ? JSON.parse(projectsStr) : [];
       const workers = workersStr ? JSON.parse(workersStr) : [];
+      const notifications = notificationsStr ? JSON.parse(notificationsStr) : [];
 
-      setStatus(`Found ${workers.length} workers and ${projects.length} projects.\n\nChecking for PINs...`);
+      // Extract messages from projects (they're stored in tasks)
+      const messages: any[] = [];
+      projects.forEach((project: any) => {
+        project.tasks?.forEach((task: any) => {
+          if (task.messages && task.messages.length > 0) {
+            messages.push({
+              projectId: project.id,
+              taskId: task.id,
+              projectNumber: project.number,
+              taskDescription: task.description,
+              messages: task.messages
+            });
+          }
+        });
+      });
+
+      setStatus(`Found ${workers.length} workers, ${projects.length} projects, ${notifications.length} notifications, and ${messages.length} message threads.\n\nChecking for PINs...`);
 
       // Check if workers have PINs
       const workersWithPins = workers.filter((w: any) => w.pin);
@@ -69,7 +88,7 @@ ${data.data.workers.length > 0 ? `\nWORKERS IN CLOUD:\n${data.data.workers.map((
       const response = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projects, workers }),
+        body: JSON.stringify({ projects, workers, notifications, messages }),
       });
 
       const data = await response.json();
