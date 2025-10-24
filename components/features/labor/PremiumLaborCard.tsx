@@ -3,47 +3,73 @@
 import React, { useState } from 'react';
 import { MapPin, Calendar, Clock, CheckCircle, Camera, Phone, MessageSquare, Package, Wrench, Image, Trash2, Bell, AlertCircle, ChevronRight, User } from 'lucide-react';
 
-const TASK_DATA = {
-  id: "T-2011-003",
-  taskName: "Install bathroom fan",
-  clientName: "Jack Shippee",
-  address: "2690 Stuart St, Denver CO 80212",
-  date: "Oct 8, 2025",
-  time: "9:00 AM",
-  duration: "2-3 hours",
-  assignedTo: "Carlos",
-  materials: [
-    { name: "Bathroom exhaust fan kit", specs: "Broan 688 - 50 CFM", qty: "1 unit", location: "Shop - Shelf B3" },
-    { name: "4\" flexible duct", specs: "Aluminum, insulated", qty: "8 feet", location: "Truck" },
-    { name: "Exterior vent cap", specs: "4\" white", qty: "1 unit", location: "Shop - Shelf B3" },
-    { name: "Wire nuts", specs: "Yellow (14-16 AWG)", qty: "4 pcs", location: "Truck" },
-    { name: "Mounting screws", specs: "1.5\" wood", qty: "8 pcs", location: "Truck" }
-  ],
-  tools: [
-    { name: "Power drill", note: "3/8\" and 1/8\" bits" },
-    { name: "Reciprocating saw", note: "For duct routing" },
-    { name: "Wire stripper", note: "" },
-    { name: "Screwdriver set", note: "Phillips + flat" },
-    { name: "Ladder", note: "6ft minimum" },
-    { name: "Voltage tester", note: "Safety" }
-  ],
-  steps: [
-    { id: 1, title: "Document Before", action: "Take photos showing current condition from multiple angles.", minPhotos: 2 },
-    { id: 2, title: "Cut Opening", action: "Mark location between joists. Check for wiring/pipes first. Cut per template." },
-    { id: 3, title: "Run Ductwork", action: "Route duct to exterior with downward slope. Secure every 4ft.", minPhotos: 2 },
-    { id: 4, title: "Wire It Up", action: "⚡ POWER OFF - Match colors: black→black, white→white, ground→ground." },
-    { id: 5, title: "Mount & Test", action: "Secure housing. Power ON. Test with customer - should be quiet + strong.", minPhotos: 1 }
-  ],
-  notes: [
-    "Jack will be home - knock first",
-    "Park on street (RV in driveway)",
-    "2 friendly dogs - they're loud",
-    "Upstairs bathroom, 2nd door left"
-  ],
-  contacts: { office: "(303) 555-0199" }
-};
+interface TaskData {
+  id: string;
+  taskName: string;
+  clientName: string;
+  address: string;
+  date: string;
+  time: string;
+  duration: string;
+  assignedTo: string;
+  projectId?: string;
+  projectNumber?: string;
+  materials?: Array<{ name: string; specs: string; qty: string; location: string }>;
+  tools?: Array<{ name: string; note: string }>;
+  steps?: Array<{ id: number; title: string; action: string; minPhotos?: number }>;
+  notes?: string[];
+  contacts: { office: string };
+}
 
-export default function PremiumLaborCard() {
+interface PremiumLaborCardProps {
+  taskData?: TaskData;
+  workerId?: string;
+  onComplete?: () => void;
+}
+
+export default function PremiumLaborCard({ taskData: propTaskData, workerId, onComplete }: PremiumLaborCardProps) {
+  // Default demo data for when no props are passed
+  const DEFAULT_TASK_DATA: TaskData = {
+    id: "T-2011-003",
+    taskName: "Install bathroom fan",
+    clientName: "Jack Shippee",
+    address: "2690 Stuart St, Denver CO 80212",
+    date: "Oct 8, 2025",
+    time: "9:00 AM",
+    duration: "2-3 hours",
+    assignedTo: "Carlos",
+    materials: [
+      { name: "Bathroom exhaust fan kit", specs: "Broan 688 - 50 CFM", qty: "1 unit", location: "Shop - Shelf B3" },
+      { name: "4\" flexible duct", specs: "Aluminum, insulated", qty: "8 feet", location: "Truck" },
+      { name: "Exterior vent cap", specs: "4\" white", qty: "1 unit", location: "Shop - Shelf B3" },
+      { name: "Wire nuts", specs: "Yellow (14-16 AWG)", qty: "4 pcs", location: "Truck" },
+      { name: "Mounting screws", specs: "1.5\" wood", qty: "8 pcs", location: "Truck" }
+    ],
+    tools: [
+      { name: "Power drill", note: "3/8\" and 1/8\" bits" },
+      { name: "Reciprocating saw", note: "For duct routing" },
+      { name: "Wire stripper", note: "" },
+      { name: "Screwdriver set", note: "Phillips + flat" },
+      { name: "Ladder", note: "6ft minimum" },
+      { name: "Voltage tester", note: "Safety" }
+    ],
+    steps: [
+      { id: 1, title: "Document Before", action: "Take photos showing current condition from multiple angles.", minPhotos: 2 },
+      { id: 2, title: "Cut Opening", action: "Mark location between joists. Check for wiring/pipes first. Cut per template." },
+      { id: 3, title: "Run Ductwork", action: "Route duct to exterior with downward slope. Secure every 4ft.", minPhotos: 2 },
+      { id: 4, title: "Wire It Up", action: "⚡ POWER OFF - Match colors: black→black, white→white, ground→ground." },
+      { id: 5, title: "Mount & Test", action: "Secure housing. Power ON. Test with customer - should be quiet + strong.", minPhotos: 1 }
+    ],
+    notes: [
+      "Jack will be home - knock first",
+      "Park on street (RV in driveway)",
+      "2 friendly dogs - they're loud",
+      "Upstairs bathroom, 2nd door left"
+    ],
+    contacts: { office: "(303) 555-0199" }
+  };
+
+  const TASK_DATA = propTaskData || DEFAULT_TASK_DATA;
   const [phase, setPhase] = useState<'review' | 'calendar' | 'prep' | 'active' | 'cleanup' | 'inspection' | 'done'>('review');
   const [reminderTime, setReminderTime] = useState('1hr');
   const [checkedMat, setCheckedMat] = useState<number[]>([]);
@@ -244,32 +270,38 @@ export default function PremiumLaborCard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 p-6 bg-slate-50">
-              <div className="bg-white rounded-2xl p-4 border border-slate-200">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                    <Package size={20} className="text-green-600" />
+            {((TASK_DATA.materials && TASK_DATA.materials.length > 0) || (TASK_DATA.tools && TASK_DATA.tools.length > 0)) && (
+              <div className="grid grid-cols-2 gap-4 p-6 bg-slate-50">
+                {TASK_DATA.materials && TASK_DATA.materials.length > 0 && (
+                  <div className="bg-white rounded-2xl p-4 border border-slate-200">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                        <Package size={20} className="text-green-600" />
+                      </div>
+                      <div>
+                        <div className="text-2xl font-black text-slate-900">{TASK_DATA.materials.length}</div>
+                        <div className="text-xs font-medium text-slate-500">Materials</div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-2xl font-black text-slate-900">{TASK_DATA.materials.length}</div>
-                    <div className="text-xs font-medium text-slate-500">Materials</div>
+                )}
+                {TASK_DATA.tools && TASK_DATA.tools.length > 0 && (
+                  <div className="bg-white rounded-2xl p-4 border border-slate-200">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <Wrench size={20} className="text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="text-2xl font-black text-slate-900">{TASK_DATA.tools.length}</div>
+                        <div className="text-xs font-medium text-slate-500">Tools</div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
-              <div className="bg-white rounded-2xl p-4 border border-slate-200">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <Wrench size={20} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-black text-slate-900">{TASK_DATA.tools.length}</div>
-                    <div className="text-xs font-medium text-slate-500">Tools</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
 
-            {TASK_DATA.notes.length > 0 && (
+            {TASK_DATA.notes && TASK_DATA.notes.length > 0 && (
               <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 p-6 border-t border-amber-200">
                 <div className="flex gap-4">
                   <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -420,8 +452,10 @@ export default function PremiumLaborCard() {
   }
 
   if (phase === 'prep') {
-    const allMat = checkedMat.length === TASK_DATA.materials.length;
-    const allTool = checkedTools.length === TASK_DATA.tools.length;
+    const materials = TASK_DATA.materials || [];
+    const tools = TASK_DATA.tools || [];
+    const allMat = materials.length === 0 || checkedMat.length === materials.length;
+    const allTool = tools.length === 0 || checkedTools.length === tools.length;
     const ready = allMat && allTool;
 
     return (
@@ -444,18 +478,19 @@ export default function PremiumLaborCard() {
             <h2 className="text-2xl font-black text-slate-900">{TASK_DATA.taskName}</h2>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
-            <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Package size={22} className="text-white" />
-                <span className="font-black text-white text-lg">Materials</span>
+          {materials.length > 0 && (
+            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
+              <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Package size={22} className="text-white" />
+                  <span className="font-black text-white text-lg">Materials</span>
+                </div>
+                <div className="bg-white/20 backdrop-blur px-3 py-1 rounded-full">
+                  <span className="text-sm font-black text-white">{checkedMat.length}/{materials.length}</span>
+                </div>
               </div>
-              <div className="bg-white/20 backdrop-blur px-3 py-1 rounded-full">
-                <span className="text-sm font-black text-white">{checkedMat.length}/{TASK_DATA.materials.length}</span>
-              </div>
-            </div>
-            <div className="p-4 space-y-2">
-              {TASK_DATA.materials.map((m, i) => {
+              <div className="p-4 space-y-2">
+                {materials.map((m, i) => {
                 const checked = checkedMat.includes(i);
                 return (
                   <div
@@ -484,21 +519,23 @@ export default function PremiumLaborCard() {
                   </div>
                 );
               })}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Wrench size={22} className="text-white" />
-                <span className="font-black text-white text-lg">Tools</span>
+          {tools.length > 0 && (
+            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Wrench size={22} className="text-white" />
+                  <span className="font-black text-white text-lg">Tools</span>
+                </div>
+                <div className="bg-white/20 backdrop-blur px-3 py-1 rounded-full">
+                  <span className="text-sm font-black text-white">{checkedTools.length}/{tools.length}</span>
+                </div>
               </div>
-              <div className="bg-white/20 backdrop-blur px-3 py-1 rounded-full">
-                <span className="text-sm font-black text-white">{checkedTools.length}/{TASK_DATA.tools.length}</span>
-              </div>
-            </div>
-            <div className="p-4 space-y-2">
-              {TASK_DATA.tools.map((t, i) => {
+              <div className="p-4 space-y-2">
+                {tools.map((t, i) => {
                 const checked = checkedTools.includes(i);
                 return (
                   <div
@@ -526,8 +563,9 @@ export default function PremiumLaborCard() {
                   </div>
                 );
               })}
+              </div>
             </div>
-          </div>
+          )}
 
           <button
             onClick={() => ready && (setStartTime(new Date()), setPhase('active'))}
@@ -538,7 +576,7 @@ export default function PremiumLaborCard() {
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             }`}
           >
-            {ready ? '🚀 All Loaded - Head to Site' : 'Check All Items First'}
+            {ready ? (materials.length > 0 || tools.length > 0 ? '🚀 All Loaded - Head to Site' : '🚀 Head to Site') : 'Check All Items First'}
           </button>
         </div>
         <CommFloater />
@@ -547,7 +585,8 @@ export default function PremiumLaborCard() {
   }
 
   if (phase === 'active') {
-    const progress = (doneSteps.length / TASK_DATA.steps.length) * 100;
+    const steps = TASK_DATA.steps || [];
+    const progress = steps.length > 0 ? (doneSteps.length / steps.length) * 100 : 100;
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-24">
@@ -560,7 +599,7 @@ export default function PremiumLaborCard() {
               </div>
               <div className="text-right">
                 <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">
-                  {doneSteps.length}/{TASK_DATA.steps.length}
+                  {doneSteps.length}/{steps.length}
                 </div>
                 <div className="text-xs text-slate-500 font-bold">STEPS</div>
               </div>
@@ -579,7 +618,18 @@ export default function PremiumLaborCard() {
         </div>
 
         <div className="max-w-2xl mx-auto p-4 space-y-3 mt-4">
-          {TASK_DATA.steps.map((step) => {
+          {steps.length === 0 && (
+            <div className="bg-white rounded-3xl shadow-xl p-8 text-center">
+              <p className="text-lg text-slate-600 mb-4">No specific work steps defined for this task.</p>
+              <button
+                onClick={() => setPhase('cleanup')}
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 active:scale-[0.98] text-white font-bold py-4 px-8 rounded-2xl shadow-lg transition-all"
+              >
+                Skip to Cleanup →
+              </button>
+            </div>
+          )}
+          {steps.map((step) => {
             const done = doneSteps.includes(step.id);
             const exp = expandStep === step.id;
             const photos = stepPhotos[step.id] || [];
@@ -674,7 +724,7 @@ export default function PremiumLaborCard() {
           })}
         </div>
 
-        {doneSteps.length === TASK_DATA.steps.length && (
+        {steps.length > 0 && doneSteps.length === steps.length && (
           <div className="fixed bottom-0 inset-x-0 bg-gradient-to-t from-white via-white to-transparent p-6 border-t-4 border-orange-500 shadow-2xl">
             <div className="max-w-2xl mx-auto">
               <button
@@ -820,6 +870,7 @@ export default function PremiumLaborCard() {
   }
 
   if (phase === 'done') {
+    const steps = TASK_DATA.steps || [];
     const mins = startTime ? Math.round((new Date().getTime() - startTime.getTime()) / 60000) : 0;
     const hrs = Math.floor(mins / 60);
     const m = mins % 60;
@@ -846,10 +897,12 @@ export default function PremiumLaborCard() {
                   <span className="font-black text-slate-900 text-xl">{hrs > 0 ? `${hrs}h ` : ''}{m}m</span>
                 </div>
                 <div className="h-px bg-slate-200" />
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600">Work Steps</span>
-                  <span className="font-black text-green-600 text-lg">{TASK_DATA.steps.length} ✓</span>
-                </div>
+                {steps.length > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-600">Work Steps</span>
+                    <span className="font-black text-green-600 text-lg">{steps.length} ✓</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600">Cleanup</span>
                   <span className="font-black text-green-600 text-lg">Complete ✓</span>
@@ -866,26 +919,38 @@ export default function PremiumLaborCard() {
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                setPhase('review');
-                setCheckedMat([]);
-                setCheckedTools([]);
-                setDoneSteps([]);
-                setStepPhotos({});
-                setExpandStep(null);
-                setCleanChecks([]);
-                setCleanPhotos([]);
-                setInspectDone(false);
-                setCustomerOK(false);
-                setFinalPhotos([]);
-                setStartTime(null);
-                setReminderTime('1hr');
-              }}
-              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:scale-[0.98] text-white font-black py-5 rounded-2xl shadow-xl transition-all text-lg"
-            >
-              🔄 New Job (Demo Reset)
-            </button>
+            <div className="space-y-3">
+              {onComplete && (
+                <button
+                  onClick={() => {
+                    onComplete();
+                  }}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 active:scale-[0.98] text-white font-black py-5 rounded-2xl shadow-xl transition-all text-lg"
+                >
+                  ✓ Back to Dashboard
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setPhase('review');
+                  setCheckedMat([]);
+                  setCheckedTools([]);
+                  setDoneSteps([]);
+                  setStepPhotos({});
+                  setExpandStep(null);
+                  setCleanChecks([]);
+                  setCleanPhotos([]);
+                  setInspectDone(false);
+                  setCustomerOK(false);
+                  setFinalPhotos([]);
+                  setStartTime(null);
+                  setReminderTime('1hr');
+                }}
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:scale-[0.98] text-white font-black py-5 rounded-2xl shadow-xl transition-all text-lg"
+              >
+                🔄 {onComplete ? 'View Task Again' : 'New Job (Demo Reset)'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -16,7 +16,9 @@ import {
   Award,
   Zap,
   ChevronRight,
+  ArrowLeft,
 } from 'lucide-react';
+import PremiumLaborCard from '@/components/features/labor/PremiumLaborCard';
 
 interface Task {
   id: string;
@@ -54,6 +56,7 @@ export default function WorkerDashboard() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   useEffect(() => {
     // Check if worker is logged in
@@ -151,9 +154,20 @@ export default function WorkerDashboard() {
     }
   };
 
-  const handleStartWork = (task: Task) => {
-    // TODO: Integrate with PremiumLaborCard
-    alert('Starting work on task - PremiumLaborCard integration coming next!');
+  const handleStartWork = async (task: Task) => {
+    // Mark task as in_progress and show PremiumLaborCard
+    await fetch('/api/worker/update-task', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId: task.projectId,
+        taskId: task.id,
+        workerId,
+        action: 'start',
+      }),
+    });
+
+    setActiveTask(task);
   };
 
   const getRelativeDate = (dateString?: string): string => {
@@ -196,6 +210,42 @@ export default function WorkerDashboard() {
           <Loader2 size={48} className="animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-slate-600 font-bold">Loading your dashboard...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Show PremiumLaborCard when worker starts a task
+  if (activeTask) {
+    return (
+      <div className="relative">
+        <button
+          onClick={() => setActiveTask(null)}
+          className="fixed top-4 left-4 z-50 flex items-center gap-2 bg-white/90 backdrop-blur px-4 py-2 rounded-xl shadow-lg font-bold text-slate-700 hover:bg-white transition-all"
+        >
+          <ArrowLeft size={20} />
+          Back to Dashboard
+        </button>
+        <PremiumLaborCard
+          taskData={{
+            id: activeTask.id,
+            taskName: activeTask.description,
+            clientName: activeTask.projectClient,
+            address: activeTask.projectAddress,
+            date: activeTask.scheduledDate || 'TBD',
+            time: activeTask.scheduledTime || '9:00 AM',
+            duration: `${activeTask.estimatedHours || 2}-${(activeTask.estimatedHours || 2) + 1} hours`,
+            assignedTo: worker?.name || 'Worker',
+            projectId: activeTask.projectId,
+            projectNumber: activeTask.projectNumber,
+            notes: activeTask.notes ? [activeTask.notes] : [],
+            contacts: { office: '(303) 555-0199' },
+          }}
+          workerId={workerId}
+          onComplete={async () => {
+            await loadTasks();
+            setActiveTask(null);
+          }}
+        />
       </div>
     );
   }
