@@ -1516,7 +1516,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           </div>
 
           {/* Messages - Scrollable area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
             {selectedThread.messages && selectedThread.messages.length > 0 ? (
               <>
                 {selectedThread.messages.map((message: any) => {
@@ -1589,8 +1589,8 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
 
     // Threads list view
     return (
-      <div className="pb-24 bg-gray-50 min-h-[calc(100vh-80px)]">
-        <div className="p-4 flex items-center justify-between">
+      <div className="h-full bg-gray-50 flex flex-col">
+        <div className="flex-shrink-0 p-4 bg-gray-50 flex items-center justify-between border-b border-gray-200">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-1">Messages</h2>
             <p className="text-sm text-gray-500">
@@ -1612,13 +1612,15 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
         </div>
 
         {messageThreads.length === 0 ? (
-          <div className="text-center py-16 px-4">
-            <MessageSquare className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-gray-900 mb-2">No Messages</h3>
-            <p className="text-gray-500 text-sm font-medium">Messages from your admin will appear here</p>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center py-16 px-4">
+              <MessageSquare className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">No Messages</h3>
+              <p className="text-gray-500 text-sm font-medium">Messages from your admin will appear here</p>
+            </div>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="flex-1 overflow-y-auto divide-y divide-gray-200 bg-white">
             {messageThreads.map(thread => (
               <div
                 key={`${thread.projectId}-${thread.taskId}`}
@@ -2978,9 +2980,10 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
 
   // MAIN RENDER
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-24">
-      <div className="w-full max-w-md mx-auto bg-white min-h-screen">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-5 border-b border-blue-700">
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
+      <div className="w-full max-w-md mx-auto bg-white flex flex-col h-full">
+        {/* Header - Fixed */}
+        <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-5 border-b border-blue-700">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-white text-xl font-bold">
@@ -3127,7 +3130,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
         )}
 
         {!workerId && (
-          <div className="p-4 bg-white border-b border-gray-200">
+          <div className="flex-shrink-0 p-4 bg-white border-b border-gray-200">
             <select
               value={selectedWorkerId}
               onChange={(e) => setSelectedWorkerId(e.target.value)}
@@ -3141,21 +3144,25 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           </div>
         )}
 
-        {selectedWorkerId ? (
-          <>
-            {activeTab === 'schedule' && renderScheduleTab()}
-            {activeTab === 'jobs' && renderJobsTab()}
-            {activeTab === 'messages' && renderMessagesTab()}
-          </>
-        ) : (
-          <div className="text-center py-20">
-            <User size={64} className="mx-auto mb-4 text-gray-300" />
-            <div className="text-xl font-bold text-gray-500">Select a worker to continue</div>
-          </div>
-        )}
+        {/* Content Area - Scrollable */}
+        <div className="flex-1 overflow-y-auto">
+          {selectedWorkerId ? (
+            <>
+              {activeTab === 'schedule' && renderScheduleTab()}
+              {activeTab === 'jobs' && renderJobsTab()}
+              {activeTab === 'messages' && renderMessagesTab()}
+            </>
+          ) : (
+            <div className="text-center py-20">
+              <User size={64} className="mx-auto mb-4 text-gray-300" />
+              <div className="text-xl font-bold text-gray-500">Select a worker to continue</div>
+            </div>
+          )}
+        </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 shadow-2xl">
-          <div className="max-w-md mx-auto grid grid-cols-3 h-20">
+        {/* Bottom Navigation - Fixed */}
+        <div className="flex-shrink-0 bg-white border-t border-gray-300 shadow-2xl">
+          <div className="grid grid-cols-3 h-20">
             <button
               onClick={() => {
                 setActiveTab('jobs');
