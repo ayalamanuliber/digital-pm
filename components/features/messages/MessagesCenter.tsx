@@ -20,9 +20,11 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
   const [messageText, setMessageText] = useState('');
 
   useEffect(() => {
+    console.log('📬 MessagesCenter: Initial load');
     loadThreads();
 
     const handleUpdate = () => {
+      console.log('📬 MessagesCenter: projectsUpdated event received! Reloading threads...');
       loadThreads();
     };
 
@@ -34,7 +36,20 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
   }, []);
 
   const loadThreads = () => {
+    console.log('📬 MessagesCenter: Loading threads from localStorage...');
     const allMessages = storage.getAllMessages();
+    console.log('📬 MessagesCenter: Found', allMessages.length, 'message threads');
+
+    allMessages.forEach((item, idx) => {
+      console.log(`  Thread ${idx + 1}:`, {
+        projectId: item.projectId,
+        taskId: item.taskId,
+        projectNumber: item.projectNumber,
+        messageCount: item.messages?.length || 0,
+        lastMessage: item.messages?.[item.messages.length - 1]
+      });
+    });
+
     const messageThreads: MessageThread[] = allMessages.map(item => {
       const unreadCount = item.messages.filter(m => !m.read && m.sender !== 'admin').length;
       const lastMessage = item.messages[item.messages.length - 1];
@@ -51,6 +66,7 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
       new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime()
     );
 
+    console.log('📬 MessagesCenter: Setting', messageThreads.length, 'threads in state');
     setThreads(messageThreads);
 
     // Update selected thread if it exists
@@ -59,6 +75,7 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
         t.projectId === selectedThread.projectId && t.taskId === selectedThread.taskId
       );
       if (updated) {
+        console.log('📬 MessagesCenter: Updating selected thread with new messages');
         setSelectedThread(updated);
       }
     }
@@ -91,12 +108,24 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
               <h2 className="text-lg font-bold text-gray-900">Messages</h2>
               <p className="text-xs text-gray-500">{totalUnread} unread</p>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5 text-gray-600" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  console.log('🔄 ADMIN: Manual sync triggered from Messages panel');
+                  const { syncDataToCloud } = await import('@/lib/syncToCloud');
+                  await syncDataToCloud();
+                }}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+              >
+                🔄 Sync
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">

@@ -200,6 +200,107 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     return () => clearInterval(pollInterval);
   }, [isCloudMode, selectedWorkerId]);
 
+  // Listen for projectsUpdated event in admin mode (when messages sync from cloud)
+  useEffect(() => {
+    if (isCloudMode || !selectedWorkerId) return; // Only for admin mode with worker selected
+
+    const handleProjectsUpdated = () => {
+      console.log('📨 Admin: Projects updated, reloading messages...');
+      // Force reload by fetching fresh data
+      const projects = storage.getProjects();
+      const projectMap = new Map<string, ProjectGroup>();
+
+      projects.forEach(project => {
+        const workerTasks = project.tasks.filter(t => t.assignedTo === selectedWorkerId);
+
+        if (workerTasks.length > 0) {
+          const tasksByPhase = {
+            assigned: workerTasks.filter(t => t.status === 'pending_acceptance' || t.status === 'rejected'),
+            confirmed: workerTasks.filter(t => t.status === 'accepted' || t.status === 'confirmed'),
+            active: workerTasks.filter(t => t.status === 'in_progress'),
+            completed: workerTasks.filter(t => t.status === 'completed')
+          };
+
+          Object.entries(tasksByPhase).forEach(([phase, phaseTasks]) => {
+            if (phaseTasks.length === 0) return;
+
+            const totalHours = phaseTasks.reduce((sum, task) => {
+              return sum + (task.duration || task.estimatedHours || 0);
+            }, 0);
+
+            const uniqueKey = `${project.id}-${phase}`;
+
+            projectMap.set(uniqueKey, {
+              projectId: project.id,
+              projectNumber: project.number,
+              projectClient: project.clientName,
+              projectAddress: project.clientAddress,
+              projectColor: project.color || 'blue',
+              scheduledDate: phaseTasks[0]?.scheduledDate || phaseTasks[0]?.assignedDate,
+              scheduledTime: phaseTasks[0]?.scheduledTime || phaseTasks[0]?.time,
+              tasks: phaseTasks.map(t => ({
+                ...t,
+                projectId: project.id,
+                projectNumber: project.number,
+                projectClient: project.clientName,
+                projectAddress: project.clientAddress,
+              })),
+              totalHours,
+              phase
+            });
+          });
+        }
+      });
+
+      setProjectGroups(Array.from(projectMap.values()));
+
+      // Reload message threads
+      const allMessages = storage.getAllMessages();
+      const workerThreads = allMessages
+        .filter(item => {
+          const project = projects.find(p => p.id === item.projectId);
+          if (!project) return false;
+          const task = project.tasks.find((t: any) => t.id === item.taskId);
+          return task && task.assignedTo === selectedWorkerId;
+        })
+        .map(item => {
+          const worker = workers.find(w => w.id === selectedWorkerId);
+          const unreadCount = item.messages.filter(m => !m.read && m.sender !== (worker?.name || 'admin')).length;
+          const lastMessage = item.messages[item.messages.length - 1];
+
+          return {
+            ...item,
+            lastMessage,
+            unreadCount
+          };
+        });
+
+      workerThreads.sort((a, b) =>
+        new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime()
+      );
+
+      setMessageThreads(workerThreads);
+      console.log('✅ Admin: Messages reloaded, found', workerThreads.length, 'threads');
+
+      // Update selected thread if it exists
+      if (selectedThread) {
+        const updated = workerThreads.find(t =>
+          t.projectId === selectedThread.projectId && t.taskId === selectedThread.taskId
+        );
+        if (updated) {
+          setSelectedThread(updated);
+          console.log('✅ Admin: Selected thread updated with new messages');
+        }
+      }
+    };
+
+    window.addEventListener('projectsUpdated', handleProjectsUpdated);
+
+    return () => {
+      window.removeEventListener('projectsUpdated', handleProjectsUpdated);
+    };
+  }, [isCloudMode, selectedWorkerId, workers, selectedThread]);
+
   const loadData = async () => {
     // Cloud mode: fetch from API
     if (isCloudMode && selectedWorkerId) {
@@ -1242,13 +1343,30 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     const worker = workers.find(w => w.id === selectedWorkerId);
     if (!selectedThread || !threadMessageText.trim() || !worker) return;
 
+    const messageTextToSend = threadMessageText;
+
     // Cloud mode: send via API
     if (isCloudMode) {
+      // OPTIMISTIC UPDATE: Add message to UI immediately
+      const optimisticMessage = {
+        id: `temp_${Date.now()}`,
+        sender: worker.name,
+        text: messageTextToSend,
+        timestamp: new Date().toISOString(),
+        read: false,
+      };
+
+      setSelectedThread({
+        ...selectedThread,
+        messages: [...(selectedThread.messages || []), optimisticMessage],
+      });
+      setThreadMessageText('');
+
       try {
         console.log('📤 Sending message:', {
           projectId: selectedThread.projectId,
           taskId: selectedThread.taskId,
-          text: threadMessageText,
+          text: messageTextToSend,
           sender: worker.name
         });
 
@@ -1258,7 +1376,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           body: JSON.stringify({
             projectId: selectedThread.projectId,
             taskId: selectedThread.taskId,
-            text: threadMessageText,
+            text: messageTextToSend,
             sender: worker.name,
             workerId: selectedWorkerId,
           }),
@@ -1268,13 +1386,10 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
         console.log('📨 Message send response:', data);
 
         if (data.success) {
-          setThreadMessageText('');
-
-          // Reload messages to get the new one
+          // Reload messages to get the confirmed version from server
           await loadMessageThreads();
 
-          // After reloading, find and update the selected thread with new messages
-          // We need to fetch the thread again to show the new message
+          // Refetch the thread to get actual message IDs
           const threadResponse = await fetch(`/api/worker/messages?workerId=${selectedWorkerId}`);
           const threadData = await threadResponse.json();
 
@@ -1284,21 +1399,32 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
             );
 
             if (updatedThread) {
-              // Add metadata that might be missing
               setSelectedThread({
                 ...updatedThread,
                 projectNumber: selectedThread.projectNumber,
                 taskDescription: selectedThread.taskDescription
               });
-              console.log('✅ Message sent and thread updated');
+              console.log('✅ Message sent and thread updated with server data');
             }
           }
         } else {
+          // Revert optimistic update on failure
           console.error('❌ Message send failed:', data.error);
+          setSelectedThread({
+            ...selectedThread,
+            messages: selectedThread.messages.filter((m: any) => m.id !== optimisticMessage.id),
+          });
+          setThreadMessageText(messageTextToSend);
           alert('Failed to send message: ' + data.error);
         }
       } catch (error) {
+        // Revert optimistic update on error
         console.error('Failed to send message:', error);
+        setSelectedThread({
+          ...selectedThread,
+          messages: selectedThread.messages.filter((m: any) => m.id !== optimisticMessage.id),
+        });
+        setThreadMessageText(messageTextToSend);
         alert('Error sending message. Check console.');
       }
       return;
@@ -1409,11 +1535,25 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     // Threads list view
     return (
       <div className="pb-24 bg-gray-50 min-h-[calc(100vh-80px)]">
-        <div className="p-4">
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Messages</h2>
-          <p className="text-sm text-gray-500 mb-4">
-            {messageThreads.reduce((acc, t) => acc + t.unreadCount, 0)} unread
-          </p>
+        <div className="p-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">Messages</h2>
+            <p className="text-sm text-gray-500">
+              {messageThreads.reduce((acc, t) => acc + t.unreadCount, 0)} unread
+            </p>
+          </div>
+          {!isCloudMode && (
+            <button
+              onClick={async () => {
+                console.log('🔄 MANUAL SYNC TRIGGERED BY USER');
+                const { syncDataToCloud } = await import('@/lib/syncToCloud');
+                await syncDataToCloud();
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+            >
+              🔄 Sync
+            </button>
+          )}
         </div>
 
         {messageThreads.length === 0 ? (
