@@ -1518,7 +1518,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           </div>
 
           {/* Messages - Scrollable area with proper padding */}
-          <div className="h-full overflow-y-auto overscroll-none p-4 space-y-3 bg-gray-50" style={{ paddingTop: '60px', paddingBottom: '120px', WebkitOverflowScrolling: 'touch' }}>
+          <div className="h-full overflow-y-auto overscroll-none p-4 space-y-3 bg-gray-50" style={{ paddingTop: '60px', paddingBottom: '160px', WebkitOverflowScrolling: 'touch' }}>
             {selectedThread.messages && selectedThread.messages.length > 0 ? (
               <>
                 {selectedThread.messages.map((message: any) => {
@@ -1573,7 +1573,8 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
                   }
                 }}
                 placeholder="Type a message..."
-                className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-2xl focus:outline-none focus:border-blue-500 resize-none text-sm"
+                className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-2xl focus:outline-none focus:border-blue-500 resize-none"
+                style={{ fontSize: '16px' }}
                 rows={2}
               />
               <button
