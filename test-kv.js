@@ -3,14 +3,15 @@ require('dotenv').config({ path: '.env.local' });
 const { createClient } = require('@vercel/kv');
 
 const kv = createClient({
-  url: process.env.REDIS_URL,
-  token: process.env.KV_REST_API_TOKEN || 'not-needed-for-redis-url'
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN
 });
 
 async function test() {
   try {
     console.log('Testing KV connection...');
-    console.log('Using REDIS_URL:', process.env.REDIS_URL ? '✓ Found' : '✗ Missing');
+    console.log('Using KV_REST_API_URL:', process.env.KV_REST_API_URL ? '✓ Found' : '✗ Missing');
+    console.log('Using KV_REST_API_TOKEN:', process.env.KV_REST_API_TOKEN ? '✓ Found' : '✗ Missing');
 
     // Try to set a test value
     await kv.set('test-key', 'test-value');
