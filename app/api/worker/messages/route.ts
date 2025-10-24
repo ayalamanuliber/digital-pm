@@ -24,12 +24,23 @@ export async function GET(request: NextRequest) {
 
     // Get worker's tasks to filter messages
     const projects = await kv.get<any[]>('pm:projects') || [];
-    const workerMessages = allMessages.filter((msg: any) => {
-      const project = projects.find(p => p.id === msg.projectId);
-      if (!project) return false;
-      const task = project.tasks?.find((t: any) => t.id === msg.taskId);
-      return task && task.assignedTo === workerId;
-    });
+    const workerMessages = allMessages
+      .filter((msg: any) => {
+        const project = projects.find(p => p.id === msg.projectId);
+        if (!project) return false;
+        const task = project.tasks?.find((t: any) => t.id === msg.taskId);
+        return task && task.assignedTo === workerId;
+      })
+      .map((msg: any) => {
+        // Add project and task metadata to each message thread
+        const project = projects.find(p => p.id === msg.projectId);
+        const task = project?.tasks?.find((t: any) => t.id === msg.taskId);
+        return {
+          ...msg,
+          projectNumber: project?.number || '',
+          taskDescription: task?.description || '',
+        };
+      });
 
     return NextResponse.json({
       success: true,
