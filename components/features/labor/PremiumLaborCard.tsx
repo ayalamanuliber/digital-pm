@@ -25,9 +25,11 @@ interface PremiumLaborCardProps {
   taskData?: TaskData;
   workerId?: string;
   onComplete?: () => void;
+  onAccept?: () => void;
+  onReject?: (reason: string) => void;
 }
 
-export default function PremiumLaborCard({ taskData: propTaskData, workerId, onComplete }: PremiumLaborCardProps) {
+export default function PremiumLaborCard({ taskData: propTaskData, workerId, onComplete, onAccept, onReject }: PremiumLaborCardProps) {
   // Default demo data for when no props are passed
   const DEFAULT_TASK_DATA: TaskData = {
     id: "T-2011-003",
@@ -85,6 +87,8 @@ export default function PremiumLaborCard({ taskData: propTaskData, workerId, onC
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [showComm, setShowComm] = useState(false);
   const [showTooltip, setShowTooltip] = useState(true);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   const formatDateForCalendar = (dateStr: string, timeStr: string, reminder: string) => {
     const date = new Date(`${dateStr} ${timeStr}`);
@@ -324,14 +328,22 @@ export default function PremiumLaborCard({ taskData: propTaskData, workerId, onC
 
             <div className="p-6 space-y-3">
               <button
-                onClick={() => setPhase('calendar')}
+                onClick={() => {
+                  if (onAccept) {
+                    onAccept();
+                  }
+                  setPhase('calendar');
+                }}
                 className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 active:scale-[0.98] text-white font-black py-5 rounded-2xl shadow-xl transition-all text-lg flex items-center justify-center gap-3"
               >
                 <CheckCircle size={24} />
                 Accept Job
               </button>
-              <button className="w-full border-2 border-slate-300 hover:border-slate-400 active:scale-[0.98] text-slate-700 font-bold py-4 rounded-2xl transition-all">
-                I&apos;m Missing Something
+              <button
+                onClick={() => setShowRejectModal(true)}
+                className="w-full border-2 border-slate-300 hover:border-red-500 hover:bg-red-50 active:scale-[0.98] text-slate-700 hover:text-red-600 font-bold py-4 rounded-2xl transition-all"
+              >
+                Can&apos;t Do This
               </button>
             </div>
           </div>
@@ -957,5 +969,62 @@ export default function PremiumLaborCard({ taskData: propTaskData, workerId, onC
     );
   }
 
-  return null;
+  // Reject Modal
+  return (
+    <>
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                <AlertCircle size={24} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900">Can&apos;t Do This Task?</h3>
+                <p className="text-sm text-slate-600">Let us know why</p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-slate-900 mb-2">
+                Reason (required)
+              </label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="E.g., Schedule conflict, don't have tools, too far, etc."
+                className="w-full h-32 p-4 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-red-500/20 focus:border-red-500 resize-none"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectReason('');
+                }}
+                className="flex-1 border-2 border-slate-300 hover:border-slate-400 active:scale-[0.98] text-slate-700 font-bold py-3 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (rejectReason.trim() && onReject) {
+                    onReject(rejectReason);
+                    setShowRejectModal(false);
+                    setRejectReason('');
+                  }
+                }}
+                disabled={!rejectReason.trim()}
+                className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 active:scale-[0.98] text-white font-bold py-3 rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

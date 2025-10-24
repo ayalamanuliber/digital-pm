@@ -74,10 +74,35 @@ export default function WorkerDashboard() {
 
     loadTasks();
 
-    // Poll for updates every 5 seconds
-    const interval = setInterval(loadTasks, 5000);
+    // Poll for updates every 10 seconds (less aggressive for mobile)
+    const interval = setInterval(loadTasks, 10000);
     return () => clearInterval(interval);
   }, [workerId, router]);
+
+  // Auto-open in-progress or pending tasks in PremiumLaborCard
+  useEffect(() => {
+    if (loading || activeTask) return;
+
+    // Priority 1: Show in-progress task
+    const inProgressTask = tasks.find(t => t.status === 'in_progress');
+    if (inProgressTask) {
+      setActiveTask(inProgressTask);
+      return;
+    }
+
+    // Priority 2: Show first pending task in review mode
+    const pendingTask = tasks.find(t => t.status === 'pending_acceptance');
+    if (pendingTask) {
+      setActiveTask(pendingTask);
+      return;
+    }
+
+    // Priority 3: Show first confirmed task
+    const confirmedTask = tasks.find(t => t.status === 'confirmed' || t.status === 'accepted');
+    if (confirmedTask) {
+      setActiveTask(confirmedTask);
+    }
+  }, [tasks, loading, activeTask]);
 
   const loadTasks = async () => {
     try {
@@ -214,17 +239,23 @@ export default function WorkerDashboard() {
     );
   }
 
-  // Show PremiumLaborCard when worker starts a task
+  // Show PremiumLaborCard when worker has a task
   if (activeTask) {
+    const otherTasks = tasks.filter(t => t.id !== activeTask.id);
+
     return (
       <div className="relative">
-        <button
-          onClick={() => setActiveTask(null)}
-          className="fixed top-4 left-4 z-50 flex items-center gap-2 bg-white/90 backdrop-blur px-4 py-2 rounded-xl shadow-lg font-bold text-slate-700 hover:bg-white transition-all"
-        >
-          <ArrowLeft size={20} />
-          Back to Dashboard
-        </button>
+        {/* Task Switcher - Only show if there are other tasks */}
+        {otherTasks.length > 0 && (
+          <button
+            onClick={() => setActiveTask(null)}
+            className="fixed top-4 left-4 z-50 flex items-center gap-2 bg-white/90 backdrop-blur px-4 py-2 rounded-xl shadow-lg font-bold text-slate-700 hover:bg-white transition-all"
+          >
+            <ArrowLeft size={20} />
+            All Tasks ({tasks.length})
+          </button>
+        )}
+
         <PremiumLaborCard
           taskData={{
             id: activeTask.id,
@@ -242,6 +273,25 @@ export default function WorkerDashboard() {
           }}
           workerId={workerId}
           onComplete={async () => {
+            await loadTasks();
+            setActiveTask(null);
+          }}
+          onAccept={async () => {
+            await handleAcceptTask(activeTask);
+            await loadTasks();
+          }}
+          onReject={async (reason: string) => {
+            await fetch('/api/worker/update-task', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                projectId: activeTask.projectId,
+                taskId: activeTask.id,
+                workerId,
+                action: 'reject',
+                reason,
+              }),
+            });
             await loadTasks();
             setActiveTask(null);
           }}
@@ -472,14 +522,19 @@ export default function WorkerDashboard() {
           </div>
         )}
 
-        {/* Empty State */}
+        {/* Empty State - Mobile Optimized */}
         {tasks.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Award size={40} className="text-slate-400" />
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-blue-50 flex items-center justify-center p-4">
+            <div className="max-w-md w-full">
+              <div className="bg-white rounded-3xl shadow-2xl p-10 text-center border-2 border-blue-200">
+                <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl">
+                  <Award size={80} className="text-white" strokeWidth={2.5} />
+                </div>
+                <h3 className="text-4xl font-black text-slate-900 mb-4">All Caught Up!</h3>
+                <p className="text-xl text-slate-600 mb-8">No tasks assigned yet.</p>
+                <p className="text-sm text-slate-500">Check back later or contact the office if you have questions.</p>
+              </div>
             </div>
-            <h3 className="text-xl font-black text-slate-900 mb-2">All Caught Up!</h3>
-            <p className="text-slate-600">No tasks assigned yet. Check back later.</p>
           </div>
         )}
       </div>
