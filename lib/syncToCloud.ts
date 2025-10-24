@@ -162,14 +162,14 @@ export function setupAutoSync() {
   // Initial sync on page load
   syncDataToCloud();
 
-  // PERIODIC POLLING: Check for worker messages every 15 seconds
+  // AGGRESSIVE POLLING: Check for worker messages every 2 seconds (like pros)
   const pollInterval = setInterval(() => {
-    console.log('🔄 Admin: Periodic sync check for worker messages...');
+    console.log('🔄 Admin: Polling for worker messages...');
     syncDataToCloud();
-  }, 15000); // Poll every 15 seconds
+  }, 2000); // Poll every 2 seconds for real-time feel
 
   // Cleanup function (if needed)
   window.__adminSyncInterval = pollInterval;
 
-  console.log('🔄 Auto-sync initialized with 15s polling');
+  console.log('🔄 Auto-sync initialized with 2s aggressive polling (WhatsApp-style)');
 }

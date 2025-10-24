@@ -75,8 +75,18 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
         t.projectId === selectedThread.projectId && t.taskId === selectedThread.taskId
       );
       if (updated) {
-        console.log('📬 MessagesCenter: Updating selected thread - NEW message count:', updated.messages.length);
-        setSelectedThread({ ...updated }); // Force new object reference to trigger re-render
+        const oldCount = selectedThread.messages?.length || 0;
+        const newCount = updated.messages?.length || 0;
+
+        if (newCount !== oldCount) {
+          console.log('📬 MessagesCenter: NEW MESSAGES!', oldCount, '→', newCount);
+        }
+
+        // ALWAYS update with timestamp to force re-render
+        setSelectedThread({
+          ...updated,
+          _updateKey: Date.now()
+        });
       }
     }
   };

@@ -196,14 +196,15 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     }
   }, [selectedThread?.messages]);
 
-  // Auto-refresh for cloud mode - poll for updates every 10 seconds
+  // AGGRESSIVE POLLING for cloud mode - poll every 2 seconds for real-time feel
   useEffect(() => {
     if (!isCloudMode || !selectedWorkerId) return;
 
     const pollInterval = setInterval(async () => {
+      console.log('🔄 Worker: Polling for updates...');
       await loadData();
       await loadMessageThreads();
-    }, 10000); // Poll every 10 seconds
+    }, 2000); // Poll every 2 seconds (like WhatsApp/Slack)
 
     return () => clearInterval(pollInterval);
   }, [isCloudMode, selectedWorkerId]);
@@ -577,8 +578,18 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
         t.projectId === selectedThread.projectId && t.taskId === selectedThread.taskId
       );
       if (updated) {
-        console.log('🔄 Worker: Updating selected thread with', updated.messages?.length || 0, 'messages');
-        setSelectedThread({ ...updated }); // Force new object reference to trigger re-render
+        const oldCount = selectedThread.messages?.length || 0;
+        const newCount = updated.messages?.length || 0;
+
+        if (newCount !== oldCount) {
+          console.log('🔄 Worker: NEW MESSAGES!', oldCount, '→', newCount);
+        }
+
+        // ALWAYS update, even if count same (message content might have changed)
+        setSelectedThread({
+          ...updated,
+          _updateKey: Date.now() // Force re-render
+        });
       }
     }
   };
@@ -1456,7 +1467,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     // Mobile view: either show threads list or conversation
     if (!showThreadList && selectedThread) {
       return (
-        <div className="fixed inset-0 top-0 bg-white z-50 flex flex-col">
+        <div className="h-full flex flex-col bg-white">
           {/* Thread Header */}
           <div className="flex-shrink-0 bg-white border-b border-gray-200 p-4 flex items-center gap-3 shadow-sm">
             <button
@@ -1471,8 +1482,8 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
             </div>
           </div>
 
-          {/* Messages - Fixed height, scrollable */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+          {/* Messages - Scrollable area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50" style={{ maxHeight: 'calc(100vh - 300px)' }}>
             {selectedThread.messages && selectedThread.messages.length > 0 ? (
               <>
                 {selectedThread.messages.map((message: any) => {
