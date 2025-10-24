@@ -414,8 +414,8 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
             setNotificationCount(notifsData.notifications.length);
           }
 
-          // Load messages for unread count (can be parallel with setState above)
-          loadMessageThreads(); // Don't await - let it load in background
+          // Load messages for unread count
+          await loadMessageThreads();
         }
       } catch (error) {
         console.error('Failed to load cloud data:', error);
@@ -533,20 +533,14 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
         const data = await response.json();
 
         if (data.success) {
-          // Get projects to fetch colors
-          const projects = isCloudMode ? projectGroups.map(g => g.project) : storage.getProjects();
-
           const workerThreads = data.messages.map((item: any) => {
             const unreadCount = item.messages.filter((m: any) => !m.read && m.sender !== worker.name).length;
             const lastMessage = item.messages[item.messages.length - 1];
 
-            // Find project to get color
-            const project = projects.find((p: any) => p.id === item.projectId);
-            const projectColor = project?.color || 'blue';
-
+            // projectColor comes from API response now
             return {
               ...item,
-              projectColor,
+              projectColor: item.projectColor || 'blue',
               lastMessage,
               unreadCount
             };
@@ -3139,39 +3133,55 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
 
                           // Navigate to the relevant project/task
                           if (notification.projectId && notification.taskId) {
-                            // Find the project and task
-                            const projects = isCloudMode ? projectGroups.map(g => g.project) : storage.getProjects();
-                            const project = projects.find((p: any) => p.id === notification.projectId);
+                            // Find the project group that contains this task
+                            let foundTask: any = null;
+                            let foundGroup: ProjectGroup | null = null;
 
-                            if (project) {
-                              const task = project.tasks?.find((t: any) => t.id === notification.taskId);
-
-                              if (task) {
-                                // Determine which tab to navigate to based on task status
-                                if (task.scheduledDate) {
-                                  setActiveTab('schedule');
-                                } else {
-                                  setActiveTab('jobs');
+                            if (isCloudMode) {
+                              // Search in projectGroups
+                              for (const group of projectGroups) {
+                                const task = group.tasks.find((t: any) => t.id === notification.taskId);
+                                if (task) {
+                                  foundTask = task;
+                                  foundGroup = group;
+                                  break;
                                 }
-
-                                // Create a project group for the task detail
-                                const projectGroup = {
-                                  project,
-                                  projectId: project.id,
-                                  projectNumber: project.number,
-                                  projectClient: project.clientName,
-                                  projectAddress: project.clientAddress,
-                                  projectColor: project.color || 'blue',
-                                  scheduledDate: task.scheduledDate || task.assignedDate,
-                                  scheduledTime: task.scheduledTime || task.time,
-                                  tasks: [task]
-                                };
-
-                                // Open the task detail
-                                setSelectedProject(projectGroup);
-                                setSelectedTask(task);
-                                setPhase('task-detail');
                               }
+                            } else {
+                              // Search in localStorage projects
+                              const projects = storage.getProjects();
+                              const project = projects.find((p: any) => p.id === notification.projectId);
+                              if (project) {
+                                foundTask = project.tasks?.find((t: any) => t.id === notification.taskId);
+                                if (foundTask) {
+                                  foundGroup = {
+                                    projectId: project.id,
+                                    projectNumber: project.number,
+                                    projectClient: project.clientName,
+                                    projectAddress: project.clientAddress,
+                                    projectColor: project.color || 'blue',
+                                    scheduledDate: foundTask.scheduledDate || foundTask.assignedDate,
+                                    scheduledTime: foundTask.scheduledTime || foundTask.time,
+                                    tasks: [foundTask],
+                                    totalHours: 0,
+                                    status: 'assigned'
+                                  };
+                                }
+                              }
+                            }
+
+                            if (foundTask && foundGroup) {
+                              // Determine which tab to navigate to based on task status
+                              if (foundTask.scheduledDate) {
+                                setActiveTab('schedule');
+                              } else {
+                                setActiveTab('jobs');
+                              }
+
+                              // Open the task detail
+                              setSelectedProject(foundGroup);
+                              setSelectedTask(foundTask);
+                              setPhase('task-detail');
                             }
                           }
 

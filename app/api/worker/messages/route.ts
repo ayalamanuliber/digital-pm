@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         return {
           ...msg,
           projectNumber: project?.number || '',
+          projectColor: project?.color || 'blue',
           taskDescription: task?.description || '',
         };
       });
