@@ -1245,7 +1245,14 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     // Cloud mode: send via API
     if (isCloudMode) {
       try {
-        await fetch('/api/worker/messages', {
+        console.log('📤 Sending message:', {
+          projectId: selectedThread.projectId,
+          taskId: selectedThread.taskId,
+          text: threadMessageText,
+          sender: worker.name
+        });
+
+        const response = await fetch('/api/worker/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1257,10 +1264,42 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           }),
         });
 
-        setThreadMessageText('');
-        await loadMessageThreads();
+        const data = await response.json();
+        console.log('📨 Message send response:', data);
+
+        if (data.success) {
+          setThreadMessageText('');
+
+          // Reload messages to get the new one
+          await loadMessageThreads();
+
+          // After reloading, find and update the selected thread with new messages
+          // We need to fetch the thread again to show the new message
+          const threadResponse = await fetch(`/api/worker/messages?workerId=${selectedWorkerId}`);
+          const threadData = await threadResponse.json();
+
+          if (threadData.success) {
+            const updatedThread = threadData.messages.find((m: any) =>
+              m.projectId === selectedThread.projectId && m.taskId === selectedThread.taskId
+            );
+
+            if (updatedThread) {
+              // Add metadata that might be missing
+              setSelectedThread({
+                ...updatedThread,
+                projectNumber: selectedThread.projectNumber,
+                taskDescription: selectedThread.taskDescription
+              });
+              console.log('✅ Message sent and thread updated');
+            }
+          }
+        } else {
+          console.error('❌ Message send failed:', data.error);
+          alert('Failed to send message: ' + data.error);
+        }
       } catch (error) {
         console.error('Failed to send message:', error);
+        alert('Error sending message. Check console.');
       }
       return;
     }
