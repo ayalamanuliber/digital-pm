@@ -146,6 +146,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [notificationCount, setNotificationCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   // Messages state
   const [messageThreads, setMessageThreads] = useState<any[]>([]);
@@ -260,6 +261,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           const notifsResponse = await fetch(`/api/worker/notifications?workerId=${selectedWorkerId}`);
           const notifsData = await notifsResponse.json();
           if (notifsData.success) {
+            setNotifications(notifsData.notifications);
             setNotificationCount(notifsData.notifications.length);
           }
 
@@ -2760,21 +2762,28 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
             </div>
 
             {(() => {
-              const projects = storage.getProjects();
-              const workerNotifications = storage.getNotifications().filter(n => {
-                // Only show notifications from office/admin, not worker's own actions
-                if (n.projectId && n.taskId) {
-                  const project = projects.find(p => p.id === n.projectId);
-                  if (project) {
-                    const task = project.tasks.find((t: any) => t.id === n.taskId);
-                    // Show task_assigned (new assignments) and exclude task_rejected (worker's own rejections)
-                    const isRelevant = task && task.assignedTo === selectedWorkerId;
-                    const isFromOffice = n.type !== 'task_rejected';
-                    return isRelevant && isFromOffice;
+              // In cloud mode, use notifications from state. In admin mode, fetch from storage
+              let workerNotifications: any[];
+
+              if (isCloudMode) {
+                workerNotifications = notifications.sort((a, b) =>
+                  new Date(b.createdAt || b.timestamp).getTime() - new Date(a.createdAt || a.timestamp).getTime()
+                );
+              } else {
+                const projects = storage.getProjects();
+                workerNotifications = storage.getNotifications().filter(n => {
+                  if (n.projectId && n.taskId) {
+                    const project = projects.find(p => p.id === n.projectId);
+                    if (project) {
+                      const task = project.tasks.find((t: any) => t.id === n.taskId);
+                      const isRelevant = task && task.assignedTo === selectedWorkerId;
+                      const isFromOffice = n.type !== 'task_rejected';
+                      return isRelevant && isFromOffice;
+                    }
                   }
-                }
-                return false;
-              }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                  return false;
+                }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              }
 
               if (workerNotifications.length === 0) {
                 return (
