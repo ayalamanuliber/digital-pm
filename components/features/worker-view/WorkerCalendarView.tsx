@@ -2980,11 +2980,11 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
 
   // MAIN RENDER
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
-      <div className="w-full max-w-md mx-auto bg-white flex flex-col h-full">
-        {/* Header - Fixed */}
-        <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 border-b border-blue-700">
-          <div className="flex items-center justify-between">
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="w-full max-w-md mx-auto bg-white h-full relative">
+        {/* Header - Fixed to top */}
+        <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 border-b border-blue-700 z-50">
+          <div className="max-w-md mx-auto flex items-center justify-between">
             <div>
               <h1 className="text-white text-lg font-bold">
                 Hi, {selectedWorker?.name || 'Worker'}
@@ -3007,9 +3007,10 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           </div>
         </div>
 
-        {/* Notifications Panel */}
+        {/* Notifications Panel - Below fixed header */}
         {showNotifications && (
-          <div className="bg-white border-b border-gray-200 shadow-lg max-h-[60vh] overflow-y-auto">
+          <div className="fixed top-[52px] left-0 right-0 bg-white border-b border-gray-200 shadow-lg max-h-[60vh] overflow-y-auto z-40">
+            <div className="max-w-md mx-auto">
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="font-bold text-gray-900">Notifications</h3>
               <button
@@ -3126,26 +3127,29 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
                 </div>
               );
             })()}
+            </div>
           </div>
         )}
 
         {!workerId && (
-          <div className="flex-shrink-0 p-4 bg-white border-b border-gray-200">
-            <select
-              value={selectedWorkerId}
-              onChange={(e) => setSelectedWorkerId(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900 font-semibold focus:outline-none focus:border-blue-600 transition-colors"
-            >
-              <option value="">Select Worker</option>
-              {workers.map(worker => (
-                <option key={worker.id} value={worker.id}>{worker.name}</option>
-              ))}
-            </select>
+          <div className="fixed top-[52px] left-0 right-0 p-4 bg-white border-b border-gray-200 z-30">
+            <div className="max-w-md mx-auto">
+              <select
+                value={selectedWorkerId}
+                onChange={(e) => setSelectedWorkerId(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-900 font-semibold focus:outline-none focus:border-blue-600 transition-colors"
+              >
+                <option value="">Select Worker</option>
+                {workers.map(worker => (
+                  <option key={worker.id} value={worker.id}>{worker.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
 
-        {/* Content Area - Scrollable with bottom padding for fixed nav */}
-        <div className="flex-1 overflow-y-auto pb-16">
+        {/* Content Area - Scrollable with padding for fixed header and nav */}
+        <div className="h-full overflow-y-auto pt-[52px] pb-14">
           {selectedWorkerId ? (
             <>
               {activeTab === 'schedule' && renderScheduleTab()}
