@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 
 export default function AdminSyncPage() {
   const [status, setStatus] = useState<string>('');
@@ -70,13 +69,13 @@ export default function AdminSyncPage() {
         </div>
 
         <div className="space-y-4">
-          <Button
+          <button
             onClick={syncToCloud}
             disabled={loading}
-            className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+            className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Syncing...' : '🚀 Sync to Cloud Now'}
-          </Button>
+          </button>
 
           {status && (
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
