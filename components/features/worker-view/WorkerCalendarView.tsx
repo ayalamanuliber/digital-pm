@@ -1321,9 +1321,9 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     // Mobile view: either show threads list or conversation
     if (!showThreadList && selectedThread) {
       return (
-        <div className="flex flex-col h-[calc(100vh-80px)] bg-white">
+        <div className="flex flex-col h-[calc(100vh-240px)] bg-white">
           {/* Thread Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center gap-3 shadow-sm z-10">
+          <div className="flex-shrink-0 bg-white border-b border-gray-200 p-4 flex items-center gap-3 shadow-sm z-10">
             <button
               onClick={handleBackToThreads}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -1337,7 +1337,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50" style={{ minHeight: '200px' }}>
             {selectedThread.messages && selectedThread.messages.length > 0 ? (
               selectedThread.messages.map((message: any) => {
                 const worker = workers.find(w => w.id === selectedWorkerId);
@@ -1377,7 +1377,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           </div>
 
           {/* Message Input */}
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">
+          <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 shadow-lg">
             <div className="flex gap-2 items-end">
               <textarea
                 value={threadMessageText}
@@ -1390,13 +1390,13 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
                 }}
                 placeholder="Type a message..."
                 className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-2xl focus:outline-none focus:border-blue-500 resize-none text-base"
-                rows={1}
+                rows={2}
                 style={{ maxHeight: '120px' }}
               />
               <button
                 onClick={handleSendThreadMessage}
                 disabled={!threadMessageText.trim()}
-                className="bg-blue-600 text-white p-3 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors shadow-lg"
+                className="bg-blue-600 text-white p-3 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors shadow-lg flex-shrink-0"
               >
                 <Send className="w-6 h-6" />
               </button>
@@ -2907,12 +2907,15 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
                             <h4 className="font-bold text-gray-900 mb-1">{notification.title}</h4>
                             <p className="text-sm text-gray-700 mb-2">{notification.message}</p>
                             <p className="text-xs text-gray-500">
-                              {new Date(notification.createdAt).toLocaleString([], {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
+                              {notification.createdAt || notification.timestamp ?
+                                new Date(notification.createdAt || notification.timestamp).toLocaleString([], {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
+                                : 'Just now'
+                              }
                             </p>
                           </div>
                           {!notification.read && (
