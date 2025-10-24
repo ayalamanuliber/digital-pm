@@ -21,23 +21,10 @@ export async function syncDataToCloud() {
     const workers = storage.getWorkers();
     const notifications = storage.getNotifications();
 
-    // Extract messages from projects
-    const messages: any[] = [];
-    projects.forEach((project: any) => {
-      project.tasks?.forEach((task: any) => {
-        if (task.messages && task.messages.length > 0) {
-          messages.push({
-            projectId: project.id,
-            taskId: task.id,
-            projectNumber: project.number,
-            taskDescription: task.description,
-            messages: task.messages
-          });
-        }
-      });
-    });
+    // DON'T extract messages - let cloud be the source of truth
+    // Messages flow: Worker → Cloud → Admin (not Admin → Cloud)
 
-    // PUSH: Send to cloud
+    // PUSH: Send to cloud (NO MESSAGES - only projects, workers, notifications)
     const response = await fetch('/api/sync', {
       method: 'POST',
       headers: {
@@ -46,8 +33,8 @@ export async function syncDataToCloud() {
       body: JSON.stringify({
         projects,
         workers,
-        notifications,
-        messages
+        notifications
+        // messages NOT included - cloud messages are source of truth
       }),
     });
 

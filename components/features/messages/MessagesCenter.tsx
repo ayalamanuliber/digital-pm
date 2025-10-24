@@ -88,12 +88,33 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
     loadThreads();
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!selectedThread || !messageText.trim()) return;
 
-    storage.sendMessage(selectedThread.projectId, selectedThread.taskId, messageText, 'admin');
+    const textToSend = messageText;
     setMessageText('');
+
+    // Save to localStorage for immediate UI update
+    storage.sendMessage(selectedThread.projectId, selectedThread.taskId, textToSend, 'admin');
     loadThreads();
+
+    // ALSO save to cloud so worker can see it
+    try {
+      console.log('📤 Admin sending message to cloud...');
+      await fetch('/api/worker/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: selectedThread.projectId,
+          taskId: selectedThread.taskId,
+          text: textToSend,
+          sender: 'admin',
+        }),
+      });
+      console.log('✅ Admin message saved to cloud');
+    } catch (error) {
+      console.error('❌ Failed to save admin message to cloud:', error);
+    }
   };
 
   const totalUnread = threads.reduce((acc, t) => acc + t.unreadCount, 0);
