@@ -5,10 +5,37 @@ import { useState } from 'react';
 export default function AdminSyncPage() {
   const [status, setStatus] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>('');
+
+  const checkCloudData = async () => {
+    setDebugInfo('Checking cloud database...');
+    try {
+      const response = await fetch('/api/debug/kv');
+      const data = await response.json();
+
+      if (data.success) {
+        const info = `📊 CLOUD DATABASE STATUS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Workers: ${data.data.workerCount}
+Workers with PINs: ${data.data.workersWithPins}
+Projects: ${data.data.projectCount}
+Last Sync: ${data.data.timestamp}
+
+${data.data.workers.length > 0 ? `\nWORKERS IN CLOUD:\n${data.data.workers.map((w: any) => `• ${w.name}: PIN = ${w.pin || 'MISSING!'}`).join('\n')}` : 'No workers in cloud yet!'}`;
+
+        setDebugInfo(info);
+      } else {
+        setDebugInfo(`❌ Failed to check cloud: ${data.error}`);
+      }
+    } catch (error: any) {
+      setDebugInfo(`❌ Error: ${error.message}`);
+    }
+  };
 
   const syncToCloud = async () => {
     setLoading(true);
     setStatus('Reading localStorage...');
+    setDebugInfo('');
 
     try {
       // Get data from localStorage
@@ -16,7 +43,7 @@ export default function AdminSyncPage() {
       const workersStr = localStorage.getItem('workers');
 
       if (!projectsStr && !workersStr) {
-        setStatus('❌ No data found in localStorage. Please add workers/projects first.');
+        setStatus('❌ No data found in localStorage.\n\nGo to your admin dashboard first, add workers with the Workers module, then come back here to sync!');
         setLoading(false);
         return;
       }
@@ -24,7 +51,19 @@ export default function AdminSyncPage() {
       const projects = projectsStr ? JSON.parse(projectsStr) : [];
       const workers = workersStr ? JSON.parse(workersStr) : [];
 
-      setStatus(`Found ${workers.length} workers and ${projects.length} projects. Syncing to cloud...`);
+      setStatus(`Found ${workers.length} workers and ${projects.length} projects.\n\nChecking for PINs...`);
+
+      // Check if workers have PINs
+      const workersWithPins = workers.filter((w: any) => w.pin);
+      const workersWithoutPins = workers.filter((w: any) => !w.pin);
+
+      if (workersWithoutPins.length > 0) {
+        setStatus(`⚠️ WARNING! ${workersWithoutPins.length} workers have NO PIN!\n\n${workersWithoutPins.map((w: any) => `• ${w.name}`).join('\n')}\n\nGo to Workers module and edit them to add PINs first!`);
+        setLoading(false);
+        return;
+      }
+
+      setStatus(`✓ All ${workers.length} workers have PINs.\n\nSyncing to cloud...`);
 
       // Send to cloud
       const response = await fetch('/api/sync', {
@@ -36,15 +75,15 @@ export default function AdminSyncPage() {
       const data = await response.json();
 
       if (data.success) {
-        setStatus(`✅ SUCCESS! Synced ${workers.length} workers and ${projects.length} projects to cloud.\n\nWorker PINs:`);
+        setStatus(`✅ SUCCESS! Synced to cloud!\n\n📊 SYNCED DATA:\n• ${workers.length} workers\n• ${projects.length} projects\n\n🔑 WORKER PINs FOR LOGIN:`);
 
         // Show worker PINs
         if (workers.length > 0) {
-          const pinList = workers.map((w: any) => `• ${w.name}: ${w.pin || 'NO PIN - Add one!'}`).join('\n');
-          setStatus(prev => prev + '\n\n' + pinList);
+          const pinList = workers.map((w: any) => `• ${w.name}: ${w.pin}`).join('\n');
+          setStatus(prev => prev + '\n\n' + pinList + '\n\n✓ Workers can now login at:\nhttps://digital-pm-skku.vercel.app/worker-login');
         }
       } else {
-        setStatus(`❌ Sync failed: ${data.error}`);
+        setStatus(`❌ Sync failed: ${JSON.stringify(data.error)}`);
       }
     } catch (error: any) {
       setStatus(`❌ Error: ${error.message}`);
@@ -69,13 +108,21 @@ export default function AdminSyncPage() {
         </div>
 
         <div className="space-y-4">
-          <button
-            onClick={syncToCloud}
-            disabled={loading}
-            className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Syncing...' : '🚀 Sync to Cloud Now'}
-          </button>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={syncToCloud}
+              disabled={loading}
+              className="h-14 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Syncing...' : '🚀 Sync to Cloud'}
+            </button>
+            <button
+              onClick={checkCloudData}
+              className="h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg shadow-lg transition-all"
+            >
+              🔍 Check Cloud
+            </button>
+          </div>
 
           {status && (
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
