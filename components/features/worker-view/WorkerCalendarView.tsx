@@ -152,6 +152,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
   const [messageThreads, setMessageThreads] = useState<any[]>([]);
   const [selectedThread, setSelectedThread] = useState<any>(null);
   const [threadMessageText, setThreadMessageText] = useState('');
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const [showThreadList, setShowThreadList] = useState(true);
 
   // Task detail state
@@ -187,6 +188,13 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
       loadData();
     }
   }, [selectedWorkerId]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (selectedThread && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [selectedThread?.messages]);
 
   // Auto-refresh for cloud mode - poll for updates every 10 seconds
   useEffect(() => {
@@ -1448,9 +1456,9 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     // Mobile view: either show threads list or conversation
     if (!showThreadList && selectedThread) {
       return (
-        <div className="flex flex-col h-[calc(100vh-160px)] bg-white">
+        <div className="fixed inset-0 top-0 bg-white z-50 flex flex-col">
           {/* Thread Header */}
-          <div className="flex-shrink-0 bg-white border-b border-gray-200 p-4 flex items-center gap-3 shadow-sm z-10">
+          <div className="flex-shrink-0 bg-white border-b border-gray-200 p-4 flex items-center gap-3 shadow-sm">
             <button
               onClick={handleBackToThreads}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -1463,35 +1471,38 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
             </div>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50" style={{ minHeight: '200px' }}>
+          {/* Messages - Fixed height, scrollable */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
             {selectedThread.messages && selectedThread.messages.length > 0 ? (
-              selectedThread.messages.map((message: any) => {
-                const worker = workers.find(w => w.id === selectedWorkerId);
-                const isMe = message.sender === worker?.name;
-                return (
-                  <div
-                    key={message.id}
-                    className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-                  >
+              <>
+                {selectedThread.messages.map((message: any) => {
+                  const worker = workers.find(w => w.id === selectedWorkerId);
+                  const isMe = message.sender === worker?.name;
+                  return (
                     <div
-                      className={`max-w-[85%] rounded-2xl p-3 shadow-sm ${
-                        isMe
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-white text-gray-900 border border-gray-200'
-                      }`}
+                      key={message.id}
+                      className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className={`text-xs mb-1 font-semibold ${isMe ? 'text-blue-200' : 'text-gray-500'}`}>
-                        {message.sender}
-                      </div>
-                      <div className="text-sm leading-relaxed">{message.text}</div>
-                      <div className={`text-xs mt-1 ${isMe ? 'text-blue-200' : 'text-gray-400'}`}>
-                        {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      <div
+                        className={`max-w-[85%] rounded-2xl p-3 shadow-sm ${
+                          isMe
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-900 border border-gray-200'
+                        }`}
+                      >
+                        <div className={`text-xs mb-1 font-semibold ${isMe ? 'text-blue-200' : 'text-gray-500'}`}>
+                          {message.sender}
+                        </div>
+                        <div className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</div>
+                        <div className={`text-xs mt-1 ${isMe ? 'text-blue-200' : 'text-gray-400'}`}>
+                          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </>
             ) : (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
@@ -1503,8 +1514,8 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
             )}
           </div>
 
-          {/* Message Input */}
-          <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 shadow-lg">
+          {/* Message Input - Fixed at bottom */}
+          <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 shadow-lg safe-area-bottom">
             <div className="flex gap-2 items-end">
               <textarea
                 value={threadMessageText}
@@ -1518,7 +1529,6 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
                 placeholder="Type a message..."
                 className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-2xl focus:outline-none focus:border-blue-500 resize-none text-base"
                 rows={2}
-                style={{ maxHeight: '120px' }}
               />
               <button
                 onClick={handleSendThreadMessage}

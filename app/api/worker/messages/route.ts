@@ -96,6 +96,40 @@ export async function POST(request: NextRequest) {
     // Save messages
     await kv.set(KEYS.MESSAGES, allMessages);
 
+    // Create notification if message is from admin/office to worker
+    if (sender === 'admin' || sender === 'Office' || sender.toLowerCase().includes('office')) {
+      try {
+        const notifications = await kv.get<any[]>('pm:notifications') || [];
+        const projects = await kv.get<any[]>('pm:projects') || [];
+
+        // Get project info for notification
+        const project = projects.find(p => p.id === projectId);
+        const task = project?.tasks?.find((t: any) => t.id === taskId);
+
+        if (task && task.assignedTo) {
+          const notification = {
+            id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            type: 'message_received',
+            title: 'New Message from Office',
+            message: `Office: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`,
+            projectId,
+            taskId,
+            workerId: task.assignedTo,
+            timestamp: new Date().toISOString(),
+            read: false,
+            priority: 'medium'
+          };
+
+          notifications.unshift(notification);
+          await kv.set('pm:notifications', notifications);
+          console.log('✅ Created notification for worker:', task.assignedTo);
+        }
+      } catch (error) {
+        console.error('Failed to create notification:', error);
+        // Don't fail the message send if notification fails
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: newMessage,
