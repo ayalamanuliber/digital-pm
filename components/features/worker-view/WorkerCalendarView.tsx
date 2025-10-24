@@ -187,6 +187,18 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     }
   }, [selectedWorkerId]);
 
+  // Auto-refresh for cloud mode - poll for updates every 10 seconds
+  useEffect(() => {
+    if (!isCloudMode || !selectedWorkerId) return;
+
+    const pollInterval = setInterval(async () => {
+      await loadData();
+      await loadMessageThreads();
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [isCloudMode, selectedWorkerId]);
+
   const loadData = async () => {
     // Cloud mode: fetch from API
     if (isCloudMode && selectedWorkerId) {
