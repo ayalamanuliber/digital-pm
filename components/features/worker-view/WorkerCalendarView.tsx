@@ -255,7 +255,24 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
             }
           });
 
-          setProjectGroups(Array.from(projectMap.values()));
+          const projectGroupsArray = Array.from(projectMap.values());
+          setProjectGroups(projectGroupsArray);
+
+          // Debug: Log task data to check scheduledDate
+          console.log('🔍 Worker Tasks Debug:', {
+            totalTasks: data.tasks.length,
+            tasks: data.tasks.map((t: any) => ({
+              description: t.description,
+              scheduledDate: t.scheduledDate,
+              scheduledTime: t.scheduledTime,
+              hasDate: !!t.scheduledDate
+            })),
+            projectGroups: projectGroupsArray.map(pg => ({
+              projectNumber: pg.projectNumber,
+              taskCount: pg.tasks.length,
+              tasksWithDates: pg.tasks.filter((t: any) => t.scheduledDate).length
+            }))
+          });
 
           // Load notifications
           const notifsResponse = await fetch(`/api/worker/notifications?workerId=${selectedWorkerId}`);
