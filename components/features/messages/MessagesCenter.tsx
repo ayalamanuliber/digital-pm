@@ -69,14 +69,14 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
     console.log('📬 MessagesCenter: Setting', messageThreads.length, 'threads in state');
     setThreads(messageThreads);
 
-    // Update selected thread if it exists
+    // CRITICAL: Update selected thread if it exists so chat view updates
     if (selectedThread) {
       const updated = messageThreads.find(t =>
         t.projectId === selectedThread.projectId && t.taskId === selectedThread.taskId
       );
       if (updated) {
-        console.log('📬 MessagesCenter: Updating selected thread with new messages');
-        setSelectedThread(updated);
+        console.log('📬 MessagesCenter: Updating selected thread - NEW message count:', updated.messages.length);
+        setSelectedThread({ ...updated }); // Force new object reference to trigger re-render
       }
     }
   };

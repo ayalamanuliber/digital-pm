@@ -563,13 +563,14 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
 
     setMessageThreads(workerThreads);
 
-    // Update selected thread if it exists
+    // CRITICAL: Update selected thread if it exists so chat view updates in real-time
     if (selectedThread) {
       const updated = workerThreads.find(t =>
         t.projectId === selectedThread.projectId && t.taskId === selectedThread.taskId
       );
       if (updated) {
-        setSelectedThread(updated);
+        console.log('🔄 Worker: Updating selected thread with', updated.messages?.length || 0, 'messages');
+        setSelectedThread({ ...updated }); // Force new object reference to trigger re-render
       }
     }
   };
@@ -1447,7 +1448,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     // Mobile view: either show threads list or conversation
     if (!showThreadList && selectedThread) {
       return (
-        <div className="flex flex-col h-[calc(100vh-240px)] bg-white">
+        <div className="flex flex-col h-[calc(100vh-160px)] bg-white">
           {/* Thread Header */}
           <div className="flex-shrink-0 bg-white border-b border-gray-200 p-4 flex items-center gap-3 shadow-sm z-10">
             <button
