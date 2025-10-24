@@ -1500,23 +1500,25 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     // Mobile view: either show threads list or conversation
     if (!showThreadList && selectedThread) {
       return (
-        <div className="h-full flex flex-col bg-white">
-          {/* Thread Header */}
-          <div className="flex-shrink-0 bg-white border-b border-gray-200 p-4 flex items-center gap-3 shadow-sm">
-            <button
-              onClick={handleBackToThreads}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ChevronDown className="w-6 h-6 text-gray-600 transform rotate-90" />
-            </button>
-            <div className="flex-1">
-              <h3 className="font-bold text-gray-900">#{selectedThread.projectNumber}</h3>
-              <p className="text-sm text-gray-600 line-clamp-1">{selectedThread.taskDescription}</p>
+        <div className="h-full bg-white relative">
+          {/* Thread Header - Fixed at top of conversation */}
+          <div className="fixed top-[52px] left-0 right-0 bg-white border-b border-gray-200 p-3 flex items-center gap-3 shadow-sm z-30">
+            <div className="max-w-md mx-auto w-full flex items-center gap-3">
+              <button
+                onClick={handleBackToThreads}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+              >
+                <ChevronDown className="w-5 h-5 text-gray-600 transform rotate-90" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-gray-900 text-sm">#{selectedThread.projectNumber}</h3>
+                <p className="text-xs text-gray-600 truncate">{selectedThread.taskDescription}</p>
+              </div>
             </div>
           </div>
 
-          {/* Messages - Scrollable area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+          {/* Messages - Scrollable area with proper padding */}
+          <div className="h-full overflow-y-auto overscroll-none p-4 space-y-3 bg-gray-50" style={{ paddingTop: '68px', paddingBottom: '100px', WebkitOverflowScrolling: 'touch' }}>
             {selectedThread.messages && selectedThread.messages.length > 0 ? (
               <>
                 {selectedThread.messages.map((message: any) => {
@@ -1558,9 +1560,9 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
             )}
           </div>
 
-          {/* Message Input - Fixed at bottom */}
-          <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 shadow-lg safe-area-bottom">
-            <div className="flex gap-2 items-end">
+          {/* Message Input - Fixed at bottom of screen */}
+          <div className="fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 p-3 shadow-lg z-30">
+            <div className="max-w-md mx-auto flex gap-2 items-end">
               <textarea
                 value={threadMessageText}
                 onChange={(e) => setThreadMessageText(e.target.value)}
@@ -1571,15 +1573,15 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
                   }
                 }}
                 placeholder="Type a message..."
-                className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-2xl focus:outline-none focus:border-blue-500 resize-none text-base"
+                className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-2xl focus:outline-none focus:border-blue-500 resize-none text-sm"
                 rows={2}
               />
               <button
                 onClick={handleSendThreadMessage}
                 disabled={!threadMessageText.trim()}
-                className="bg-blue-600 text-white p-3 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors shadow-lg flex-shrink-0"
+                className="bg-blue-600 text-white p-2.5 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors shadow-lg flex-shrink-0"
               >
-                <Send className="w-6 h-6" />
+                <Send className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -1620,7 +1622,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
             </div>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-200 bg-white">
+          <div className="flex-1 overflow-y-auto divide-y divide-gray-200 bg-white" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}>
             {messageThreads.map(thread => (
               <div
                 key={`${thread.projectId}-${thread.taskId}`}
@@ -2980,8 +2982,8 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
 
   // MAIN RENDER
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="w-full max-w-md mx-auto bg-white h-full relative">
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100" style={{ position: 'fixed', width: '100%', touchAction: 'pan-y' }}>
+      <div className="w-full max-w-md mx-auto bg-white h-full relative" style={{ overscrollBehavior: 'none' }}>
         {/* Header - Fixed to top */}
         <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 border-b border-blue-700 z-50">
           <div className="max-w-md mx-auto flex items-center justify-between">
@@ -3149,7 +3151,7 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
         )}
 
         {/* Content Area - Scrollable with padding for fixed header and nav */}
-        <div className="h-full overflow-y-auto pt-[52px] pb-14">
+        <div className="h-full overflow-y-auto pt-[52px] pb-14" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}>
           {selectedWorkerId ? (
             <>
               {activeTab === 'schedule' && renderScheduleTab()}
