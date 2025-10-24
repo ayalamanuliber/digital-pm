@@ -33,6 +33,7 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
   const [threads, setThreads] = useState<MessageThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<MessageThread | null>(null);
   const [messageText, setMessageText] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     console.log('📬 MessagesCenter: Initial load');
@@ -50,26 +51,102 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
-  // FIX: Use useInterval for polling instead of relying on sync events only
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (selectedThread && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [selectedThread?.messages]);
+
+  // REAL-TIME POLLING: Fetch directly from cloud API every 2 seconds (like worker does)
   useInterval(() => {
-    console.log('📬 Admin: Polling for messages...');
+    console.log('📬 Admin: Polling for messages from cloud...');
     loadThreads();
   }, 2000);
 
-  const loadThreads = () => {
-    console.log('📬 MessagesCenter: Loading threads from localStorage...');
-    const allMessages = storage.getAllMessages();
-    console.log('📬 MessagesCenter: Found', allMessages.length, 'message threads');
+  const loadThreads = async () => {
+    try {
+      // FETCH FROM CLOUD (source of truth)
+      console.log('📬 MessagesCenter: Fetching messages from cloud...');
+      const response = await fetch('/api/sync/messages');
+      const data = await response.json();
 
-    allMessages.forEach((item, idx) => {
-      console.log(`  Thread ${idx + 1}:`, {
-        projectId: item.projectId,
-        taskId: item.taskId,
-        projectNumber: item.projectNumber,
-        messageCount: item.messages?.length || 0,
-        lastMessage: item.messages?.[item.messages.length - 1]
+      if (!data.success || !data.messages) {
+        console.error('📬 Failed to fetch messages from cloud:', data.error);
+        // Fallback to localStorage
+        loadThreadsFromLocalStorage();
+        return;
+      }
+
+      console.log('📬 MessagesCenter: Found', data.messages.length, 'message threads from cloud');
+
+      // Get projects for metadata
+      const projects = storage.getProjects();
+
+      const messageThreads: MessageThread[] = data.messages
+        .map((cloudThread: any) => {
+          // Find project and task for metadata
+          const project = projects.find(p => p.id === cloudThread.projectId);
+          const task = project?.tasks?.find((t: any) => t.id === cloudThread.taskId);
+
+          if (!project || !task) {
+            console.warn('📬 Project or task not found for thread:', cloudThread.projectId, cloudThread.taskId);
+            return null;
+          }
+
+          const unreadCount = cloudThread.messages.filter((m: any) => !m.read && m.sender !== 'admin').length;
+          const lastMessage = cloudThread.messages[cloudThread.messages.length - 1];
+
+          return {
+            projectId: cloudThread.projectId,
+            taskId: cloudThread.taskId,
+            projectNumber: project.number,
+            taskDescription: task.description,
+            messages: cloudThread.messages,
+            lastMessage,
+            unreadCount
+          };
+        })
+        .filter((t: any) => t !== null); // Remove null entries
+
+      // Sort by last message time
+      messageThreads.sort((a, b) =>
+        new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime()
+      );
+
+      console.log('📬 MessagesCenter: Setting', messageThreads.length, 'threads in state');
+      setThreads(messageThreads);
+
+      // Update selected thread if it exists
+      setSelectedThread(prevThread => {
+        if (!prevThread) return prevThread;
+
+        const updated = messageThreads.find(t =>
+          t.projectId === prevThread.projectId && t.taskId === prevThread.taskId
+        );
+
+        if (!updated) return prevThread;
+
+        const oldCount = prevThread.messages?.length || 0;
+        const newCount = updated.messages?.length || 0;
+
+        if (newCount !== oldCount) {
+          console.log('📬 Admin: NEW MESSAGES!', oldCount, '→', newCount);
+        }
+
+        return { ...updated };
       });
-    });
+    } catch (error) {
+      console.error('📬 Failed to load messages from cloud:', error);
+      // Fallback to localStorage
+      loadThreadsFromLocalStorage();
+    }
+  };
+
+  // Fallback: Load from localStorage if cloud fetch fails
+  const loadThreadsFromLocalStorage = () => {
+    console.log('📬 MessagesCenter: Falling back to localStorage...');
+    const allMessages = storage.getAllMessages();
 
     const messageThreads: MessageThread[] = allMessages.map(item => {
       const unreadCount = item.messages.filter(m => !m.read && m.sender !== 'admin').length;
@@ -82,40 +159,36 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
       };
     });
 
-    // Sort by last message time
     messageThreads.sort((a, b) =>
       new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime()
     );
 
-    console.log('📬 MessagesCenter: Setting', messageThreads.length, 'threads in state');
     setThreads(messageThreads);
-
-    // FIX: Use functional state update to avoid stale closure
-    setSelectedThread(prevThread => {
-      if (!prevThread) return prevThread;
-
-      const updated = messageThreads.find(t =>
-        t.projectId === prevThread.projectId && t.taskId === prevThread.taskId
-      );
-
-      if (!updated) return prevThread;
-
-      const oldCount = prevThread.messages?.length || 0;
-      const newCount = updated.messages?.length || 0;
-
-      if (newCount !== oldCount) {
-        console.log('📬 Admin: NEW MESSAGES!', oldCount, '→', newCount);
-      }
-
-      // Return new object to force re-render
-      return { ...updated };
-    });
   };
 
-  const handleSelectThread = (thread: MessageThread) => {
+  const handleSelectThread = async (thread: MessageThread) => {
     setSelectedThread(thread);
-    // Mark messages as read
+
+    // Mark messages as read in cloud
+    try {
+      await fetch('/api/worker/messages', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: thread.projectId,
+          taskId: thread.taskId,
+          workerId: 'admin',
+        }),
+      });
+      console.log('✅ Messages marked as read in cloud');
+    } catch (error) {
+      console.error('❌ Failed to mark messages as read:', error);
+    }
+
+    // Also mark in localStorage for immediate feedback
     storage.markMessagesAsRead(thread.projectId, thread.taskId, 'admin');
+
+    // Reload to update unread counts
     loadThreads();
   };
 
@@ -125,14 +198,24 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
     const textToSend = messageText;
     setMessageText('');
 
-    // Save to localStorage for immediate UI update
-    storage.sendMessage(selectedThread.projectId, selectedThread.taskId, textToSend, 'admin');
-    loadThreads();
+    // OPTIMISTIC UPDATE: Add message to UI immediately
+    const optimisticMessage = {
+      id: `temp_${Date.now()}`,
+      sender: 'admin',
+      text: textToSend,
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
 
-    // ALSO save to cloud so worker can see it
+    setSelectedThread({
+      ...selectedThread,
+      messages: [...selectedThread.messages, optimisticMessage],
+    });
+
+    // Save to cloud (source of truth)
     try {
       console.log('📤 Admin sending message to cloud...');
-      await fetch('/api/worker/messages', {
+      const response = await fetch('/api/worker/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -142,10 +225,36 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
           sender: 'admin',
         }),
       });
-      console.log('✅ Admin message saved to cloud');
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('✅ Admin message saved to cloud');
+        // Reload threads to get the confirmed version from cloud
+        loadThreads();
+      } else {
+        console.error('❌ Message send failed:', data.error);
+        // Revert optimistic update
+        setSelectedThread({
+          ...selectedThread,
+          messages: selectedThread.messages.filter(m => m.id !== optimisticMessage.id),
+        });
+        setMessageText(textToSend);
+        alert('Failed to send message: ' + data.error);
+      }
     } catch (error) {
-      console.error('❌ Failed to save admin message to cloud:', error);
+      console.error('❌ Failed to send message:', error);
+      // Revert optimistic update
+      setSelectedThread({
+        ...selectedThread,
+        messages: selectedThread.messages.filter(m => m.id !== optimisticMessage.id),
+      });
+      setMessageText(textToSend);
+      alert('Error sending message. Check console.');
     }
+
+    // Also save to localStorage for backup
+    storage.sendMessage(selectedThread.projectId, selectedThread.taskId, textToSend, 'admin');
   };
 
   const totalUnread = threads.reduce((acc, t) => acc + t.unreadCount, 0);
@@ -257,6 +366,8 @@ export default function MessagesCenter({ onClose }: { onClose: () => void }) {
                     </div>
                   );
                 })}
+                {/* Scroll anchor */}
+                <div ref={messagesEndRef} />
               </div>
 
               {/* Message Input */}
