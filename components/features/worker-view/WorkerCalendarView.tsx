@@ -131,11 +131,12 @@ const getRelativeDateInfo = (dateString: string): { label: string; isPastDue: bo
   }
 };
 
-export default function WorkerCalendarView({ workerId }: { workerId?: string }) {
+export default function WorkerCalendarView({ workerId, workerName }: { workerId?: string; workerName?: string }) {
   // Core state
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [selectedWorkerId, setSelectedWorkerId] = useState(workerId || '');
   const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
+  const [isCloudMode, setIsCloudMode] = useState(!!workerId); // Cloud mode when workerId is provided
 
   // Navigation state
   const [activeTab, setActiveTab] = useState<'schedule' | 'jobs' | 'messages'>('schedule');
@@ -186,7 +187,80 @@ export default function WorkerCalendarView({ workerId }: { workerId?: string }) 
     }
   }, [selectedWorkerId]);
 
-  const loadData = () => {
+  const loadData = async () => {
+    // Cloud mode: fetch from API
+    if (isCloudMode && selectedWorkerId) {
+      try {
+        // Fetch tasks for this worker from cloud
+        const response = await fetch(`/api/worker/tasks?workerId=${selectedWorkerId}`);
+        const data = await response.json();
+
+        if (data.success) {
+          // Create a worker object with provided name
+          const cloudWorker: Worker = {
+            id: selectedWorkerId,
+            name: workerName || 'Worker',
+            phone: '',
+            hourlyRate: 0,
+            skills: [],
+            pin: ''
+          };
+          setWorkers([cloudWorker]);
+
+          // Group tasks by project
+          const projectMap = new Map<string, ProjectGroup>();
+
+          data.tasks.forEach((task: any) => {
+            const pid = task.projectId;
+
+            if (!projectMap.has(pid)) {
+              projectMap.set(pid, {
+                projectId: pid,
+                projectNumber: task.projectNumber,
+                projectClient: task.projectClient,
+                projectAddress: task.projectAddress,
+                projectColor: task.projectColor,
+                scheduledDate: task.scheduledDate,
+                scheduledTime: task.scheduledTime,
+                tasks: [],
+                totalHours: 0,
+                status: 'assigned'
+              });
+            }
+
+            const group = projectMap.get(pid)!;
+            group.tasks.push(task);
+            group.totalHours += task.estimatedHours || 0;
+
+            // Update group status based on task statuses
+            if (task.status === 'completed') {
+              if (group.status !== 'active') group.status = 'completed';
+            } else if (task.status === 'in_progress') {
+              group.status = 'active';
+            } else if (task.status === 'confirmed' || task.status === 'accepted') {
+              if (group.status === 'assigned') group.status = 'confirmed';
+            }
+          });
+
+          setProjectGroups(Array.from(projectMap.values()));
+
+          // Load notifications
+          const notifsResponse = await fetch(`/api/worker/notifications?workerId=${selectedWorkerId}`);
+          const notifsData = await notifsResponse.json();
+          if (notifsData.success) {
+            setNotificationCount(notifsData.notifications.length);
+          }
+
+          // Load messages for unread count
+          await loadMessageThreads();
+        }
+      } catch (error) {
+        console.error('Failed to load cloud data:', error);
+      }
+      return;
+    }
+
+    // Admin mode: use localStorage
     const allWorkers = storage.getWorkers();
     setWorkers(allWorkers);
 
@@ -285,10 +359,41 @@ export default function WorkerCalendarView({ workerId }: { workerId?: string }) 
     }
   };
 
-  const loadMessageThreads = () => {
+  const loadMessageThreads = async () => {
     const worker = workers.find(w => w.id === selectedWorkerId);
     if (!worker) return;
 
+    // Cloud mode: fetch from API
+    if (isCloudMode) {
+      try {
+        const response = await fetch(`/api/worker/messages?workerId=${selectedWorkerId}`);
+        const data = await response.json();
+
+        if (data.success) {
+          const workerThreads = data.messages.map((item: any) => {
+            const unreadCount = item.messages.filter((m: any) => !m.read && m.sender !== worker.name).length;
+            const lastMessage = item.messages[item.messages.length - 1];
+
+            return {
+              ...item,
+              lastMessage,
+              unreadCount
+            };
+          });
+
+          workerThreads.sort((a: any, b: any) =>
+            new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime()
+          );
+
+          setMessageThreads(workerThreads);
+        }
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+      }
+      return;
+    }
+
+    // Admin mode: use localStorage
     const allMessages = storage.getAllMessages();
     const projects = storage.getProjects();
 
@@ -1067,22 +1172,64 @@ export default function WorkerCalendarView({ workerId }: { workerId?: string }) 
   };
 
   // Message handlers
-  const handleSelectThread = (thread: any) => {
+  const handleSelectThread = async (thread: any) => {
     const worker = workers.find(w => w.id === selectedWorkerId);
     if (!worker) return;
 
     setSelectedThread(thread);
     setShowThreadList(false);
+
     // Mark messages as read
-    storage.markMessagesAsRead(thread.projectId, thread.taskId, worker.name);
-    loadMessageThreads();
-    loadData(); // Reload to update counts
+    if (isCloudMode) {
+      try {
+        await fetch('/api/worker/messages', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: thread.projectId,
+            taskId: thread.taskId,
+            workerId: selectedWorkerId,
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to mark messages as read:', error);
+      }
+    } else {
+      storage.markMessagesAsRead(thread.projectId, thread.taskId, worker.name);
+    }
+
+    await loadMessageThreads();
+    await loadData(); // Reload to update counts
   };
 
-  const handleSendThreadMessage = () => {
+  const handleSendThreadMessage = async () => {
     const worker = workers.find(w => w.id === selectedWorkerId);
     if (!selectedThread || !threadMessageText.trim() || !worker) return;
 
+    // Cloud mode: send via API
+    if (isCloudMode) {
+      try {
+        await fetch('/api/worker/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: selectedThread.projectId,
+            taskId: selectedThread.taskId,
+            text: threadMessageText,
+            sender: worker.name,
+            workerId: selectedWorkerId,
+          }),
+        });
+
+        setThreadMessageText('');
+        await loadMessageThreads();
+      } catch (error) {
+        console.error('Failed to send message:', error);
+      }
+      return;
+    }
+
+    // Admin mode: use localStorage
     storage.sendMessage(selectedThread.projectId, selectedThread.taskId, threadMessageText, worker.name);
     setThreadMessageText('');
     loadMessageThreads();
@@ -2652,9 +2799,21 @@ export default function WorkerCalendarView({ workerId }: { workerId?: string }) 
                     return (
                       <div
                         key={notification.id}
-                        onClick={() => {
-                          storage.markNotificationAsRead(notification.id);
-                          loadData();
+                        onClick={async () => {
+                          if (isCloudMode) {
+                            try {
+                              await fetch('/api/worker/notifications', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ notificationId: notification.id }),
+                              });
+                            } catch (error) {
+                              console.error('Failed to mark notification as read:', error);
+                            }
+                          } else {
+                            storage.markNotificationAsRead(notification.id);
+                          }
+                          await loadData();
                         }}
                         className={`p-4 ${notification.read ? 'bg-white' : priorityColors[notification.priority]} border-l-4 ${notification.read ? 'border-gray-200' : priorityColors[notification.priority]} cursor-pointer hover:bg-gray-50 transition-colors`}
                       >
