@@ -104,6 +104,7 @@ export interface Worker {
   email?: string;
   skills: string[];
   availability: 'available' | 'busy' | 'off';
+  pin?: string; // 4-digit PIN for worker login
   createdAt: string;
   updatedAt: string;
 }

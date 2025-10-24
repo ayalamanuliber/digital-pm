@@ -492,6 +492,71 @@ function WorkerDetailView({ worker, onBack, onEdit, onDelete }: { worker: Worker
         </div>
       </div>
 
+      {/* Worker Login Info */}
+      {worker.pin && (
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 shadow-sm border-2 border-blue-200 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+              <Phone className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-blue-900">Worker Mobile Access</h3>
+              <p className="text-sm text-blue-700">Share these credentials with {worker.name.split(' ')[0]}</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {/* PIN Display */}
+            <div>
+              <label className="block text-sm font-bold text-blue-900 mb-2">Login PIN</label>
+              <div className="bg-white rounded-lg px-6 py-4 border-2 border-blue-300 flex items-center justify-between">
+                <span className="font-mono text-3xl font-black text-blue-900 tracking-[0.5em]">{worker.pin}</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(worker.pin || '');
+                    alert('PIN copied to clipboard!');
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm"
+                >
+                  Copy PIN
+                </button>
+              </div>
+            </div>
+
+            {/* Login URL */}
+            <div>
+              <label className="block text-sm font-bold text-blue-900 mb-2">Login Link</label>
+              <div className="bg-white rounded-lg px-4 py-3 border-2 border-blue-300 flex items-center justify-between gap-3">
+                <span className="text-sm text-blue-700 font-medium truncate">
+                  {typeof window !== 'undefined' ? `${window.location.origin}/worker-login` : 'https://digital-pm-skku.vercel.app/worker-login'}
+                </span>
+                <button
+                  onClick={() => {
+                    const url = typeof window !== 'undefined' ? `${window.location.origin}/worker-login` : 'https://digital-pm-skku.vercel.app/worker-login';
+                    navigator.clipboard?.writeText(url);
+                    alert('Link copied! Send this to the worker via SMS or WhatsApp.');
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm whitespace-nowrap"
+                >
+                  Copy Link
+                </button>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-blue-600 rounded-lg p-4 text-white">
+              <p className="font-bold mb-2">📱 How to Share:</p>
+              <ol className="text-sm space-y-1 list-decimal list-inside">
+                <li>Click "Copy Link" and send via SMS/WhatsApp</li>
+                <li>Tell them their PIN: <span className="font-mono font-bold tracking-wider">{worker.pin}</span></li>
+                <li>Worker opens link on phone and enters PIN</li>
+                <li>They'll see only their assigned tasks!</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Placeholder for future tabs */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 text-center">
         <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -506,6 +571,9 @@ function WorkerDetailView({ worker, onBack, onEdit, onDelete }: { worker: Worker
 // ============================================================================
 
 function AddWorkerModal({ onClose, onSave }: { onClose: () => void; onSave: (worker: Omit<Worker, 'id' | 'createdAt' | 'updatedAt'>) => void }) {
+  // Generate PIN on component mount
+  const [generatedPin] = useState(() => Math.floor(1000 + Math.random() * 9000).toString());
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -517,7 +585,8 @@ function AddWorkerModal({ onClose, onSave }: { onClose: () => void; onSave: (wor
     efficiency: 100,
     completedTasks: 0,
     hoursThisWeek: 0,
-    hoursNextWeek: 0
+    hoursNextWeek: 0,
+    pin: generatedPin
   });
 
   const toggleSkill = (skill: SkillType) => {
@@ -608,6 +677,32 @@ function AddWorkerModal({ onClose, onSave }: { onClose: () => void; onSave: (wor
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white"
                 />
               </div>
+            </div>
+
+            {/* Worker PIN */}
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-bold text-blue-900">Worker Login PIN</label>
+                <span className="text-xs text-blue-600 font-medium">Auto-generated</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-white border-2 border-blue-300 rounded-lg px-4 py-3 font-mono text-2xl font-bold text-blue-900 tracking-widest text-center">
+                  {formData.pin}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newPin = Math.floor(1000 + Math.random() * 9000).toString();
+                    setFormData({ ...formData, pin: newPin });
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors whitespace-nowrap"
+                >
+                  Generate New
+                </button>
+              </div>
+              <p className="text-xs text-blue-700 mt-2">
+                💡 Worker will use this 4-digit PIN to log in from their phone
+              </p>
             </div>
 
             <div>

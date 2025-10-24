@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle, Users, ListTodo, AlertTriangle, TrendingUp, Upload, Bell, Calendar, UserCheck, Zap, Clock, Eye, Briefcase, MessageSquare, Plus, ChevronDown, FileText, Settings } from 'lucide-react';
 import type { ActiveProject, DashboardStats, Alert, Activity as ActivityType, Project, Task } from '@/types';
-import MultiViewCalendar from '@/components/features/calendar/MultiViewCalendar';
+import CalendarView from '@/components/features/calendar/CalendarView';
 import PremiumLaborCard from '@/components/features/labor/PremiumLaborCard';
 import TaskAdminModal from '@/components/features/tasks/TaskAdminModal';
 import GlobalTasksView from '@/components/features/tasks/GlobalTasksView';
@@ -17,6 +17,7 @@ import NotificationsPanel from '@/components/features/notifications/Notification
 import MessagesCenter from '@/components/features/messages/MessagesCenter';
 import SettingsPanel from '@/components/features/settings/SettingsPanel';
 import { initializeAudio, playNotificationSound } from '@/lib/notificationSounds';
+import { setupAutoSync } from '@/lib/syncToCloud';
 
 export default function OperationsHub() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -39,6 +40,9 @@ export default function OperationsHub() {
     setWorkers(storage.getWorkers());
     setProjects(storage.getProjects());
     updateCounts();
+
+    // Initialize cloud sync for worker mobile access
+    setupAutoSync();
 
     // Initialize audio context on first user interaction
     const initAudio = () => {
@@ -346,7 +350,7 @@ export default function OperationsHub() {
 
       <div className="w-full">
         {activeTab === 'calendar' ? (
-          <MultiViewCalendar />
+          <CalendarView />
         ) : activeTab === 'labor-preview' ? (
           <PremiumLaborCard />
         ) : activeTab === 'workers' ? (
@@ -359,6 +363,16 @@ export default function OperationsHub() {
           <WorkerCalendarView />
         ) : activeTab === 'upload' ? (
           <UploadAssignView />
+        ) : activeTab === 'debug-data' ? (
+          <>
+            {/* @ts-ignore */}
+            {typeof window !== 'undefined' && (
+              <div>
+                {/* Lazy load DataInspector */}
+                {React.createElement(require('@/components/debug/DataInspector').default)}
+              </div>
+            )}
+          </>
         ) : activeTab === 'materials' ? (
           <div className="p-4">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
