@@ -2983,23 +2983,23 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
     <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
       <div className="w-full max-w-md mx-auto bg-white flex flex-col h-full">
         {/* Header - Fixed */}
-        <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-5 border-b border-blue-700">
+        <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 border-b border-blue-700">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-white text-xl font-bold">
+              <h1 className="text-white text-lg font-bold">
                 Hi, {selectedWorker?.name || 'Worker'}
               </h1>
-              <p className="text-blue-100 text-sm font-semibold">
+              <p className="text-blue-100 text-xs font-semibold">
                 {projectGroups.length} projects
               </p>
             </div>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2.5 bg-blue-500/30 rounded-full hover:bg-blue-500/50 transition-colors relative"
+              className="p-2 bg-blue-500/30 rounded-full hover:bg-blue-500/50 transition-colors relative"
             >
-              <Bell className="w-5 h-5 text-white" />
+              <Bell className="w-4 h-4 text-white" />
               {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                   {notificationCount}
                 </span>
               )}
@@ -3144,8 +3144,8 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           </div>
         )}
 
-        {/* Content Area - Scrollable */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Content Area - Scrollable with bottom padding for fixed nav */}
+        <div className="flex-1 overflow-y-auto pb-16">
           {selectedWorkerId ? (
             <>
               {activeTab === 'schedule' && renderScheduleTab()}
@@ -3160,20 +3160,20 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
           )}
         </div>
 
-        {/* Bottom Navigation - Fixed */}
-        <div className="flex-shrink-0 bg-white border-t border-gray-300 shadow-2xl">
-          <div className="grid grid-cols-3 h-20">
+        {/* Bottom Navigation - Fixed to bottom of screen */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-300 shadow-2xl z-50">
+          <div className="max-w-md mx-auto grid grid-cols-3 h-14">
             <button
               onClick={() => {
                 setActiveTab('jobs');
                 setShowNotifications(false);
               }}
-              className={`flex flex-col items-center justify-center gap-1.5 transition-colors ${
+              className={`flex flex-col items-center justify-center gap-0.5 transition-colors ${
                 activeTab === 'jobs' ? 'text-blue-600' : 'text-gray-500'
               }`}
             >
-              <CheckSquare className="w-6 h-6" strokeWidth={2.5} />
-              <span className="text-xs font-bold">Jobs</span>
+              <CheckSquare className="w-5 h-5" strokeWidth={2.5} />
+              <span className="text-[10px] font-bold">Jobs</span>
             </button>
 
             <button
@@ -3181,12 +3181,12 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
                 setActiveTab('schedule');
                 setShowNotifications(false);
               }}
-              className={`flex flex-col items-center justify-center gap-1.5 transition-colors ${
+              className={`flex flex-col items-center justify-center gap-0.5 transition-colors ${
                 activeTab === 'schedule' ? 'text-blue-600' : 'text-gray-500'
               }`}
             >
-              <Calendar className="w-6 h-6" strokeWidth={2.5} />
-              <span className="text-xs font-bold">Schedule</span>
+              <Calendar className="w-5 h-5" strokeWidth={2.5} />
+              <span className="text-[10px] font-bold">Schedule</span>
             </button>
 
             <button
@@ -3194,17 +3194,17 @@ export default function WorkerCalendarView({ workerId, workerName }: { workerId?
                 setActiveTab('messages');
                 setShowNotifications(false);
               }}
-              className={`flex flex-col items-center justify-center gap-1.5 transition-colors relative ${
+              className={`flex flex-col items-center justify-center gap-0.5 transition-colors relative ${
                 activeTab === 'messages' ? 'text-blue-600' : 'text-gray-500'
               }`}
             >
-              <MessageSquare className="w-6 h-6" strokeWidth={2.5} />
+              <MessageSquare className="w-5 h-5" strokeWidth={2.5} />
               {unreadMessageCount > 0 && (
-                <span className="absolute top-0 right-4 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                <span className="absolute top-0 right-4 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                   {unreadMessageCount}
                 </span>
               )}
-              <span className="text-xs font-bold">Messages</span>
+              <span className="text-[10px] font-bold">Messages</span>
             </button>
           </div>
         </div>
